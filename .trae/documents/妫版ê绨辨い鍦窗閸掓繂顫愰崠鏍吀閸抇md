@@ -1,0 +1,162 @@
+# 题库项目初始化计划
+
+## 1. 项目目录结构设计
+```
+tiku/
+├── css/                # 自定义样式文件
+├── js/                 # 自定义JavaScript文件
+├── layui/              # layui框架文件
+├── api/                # API接口文件
+├── config/             # 配置文件
+├── uploads/            # 上传文件目录
+├── index.html          # 首页
+├── login.html          # 登录页
+├── register.html       # 注册页
+└── db.php              # 数据库连接文件
+```
+
+## 2. 数据库结构设计
+
+### 2.1 users表（用户表）
+| 字段名 | 类型 | 描述 |
+| --- | --- | --- |
+| id | INT | 主键，自增 |
+| username | VARCHAR(50) | 用户名 |
+| email | VARCHAR(100) | 邮箱 |
+| password | VARCHAR(255) | 密码（加密存储） |
+| phone | VARCHAR(20) | 手机号 |
+| avatar | VARCHAR(255) | 头像 |
+| status | TINYINT | 状态（1：正常，0：禁用） |
+| created_at | DATETIME | 创建时间 |
+| updated_at | DATETIME | 更新时间 |
+
+### 2.2 categories表（题目分类表）
+| 字段名 | 类型 | 描述 |
+| --- | --- | --- |
+| id | INT | 主键，自增 |
+| name | VARCHAR(100) | 分类名称 |
+| description | TEXT | 分类描述 |
+| parent_id | INT | 父分类ID（用于多级分类） |
+| status | TINYINT | 状态（1：启用，0：禁用） |
+| created_at | DATETIME | 创建时间 |
+
+### 2.3 questions表（题目表）
+| 字段名 | 类型 | 描述 |
+| --- | --- | --- |
+| id | INT | 主键，自增 |
+| category_id | INT | 分类ID，外键关联categories表 |
+| type | TINYINT | 题目类型（1：单选，2：多选，3：判断，4：填空，5：简答） |
+| content | TEXT | 题目内容 |
+| answer | TEXT | 答案（填空、简答题直接存储答案） |
+| analysis | TEXT | 解析 |
+| difficulty | TINYINT | 难度（1：简单，2：中等，3：困难） |
+| status | TINYINT | 状态（1：启用，0：禁用） |
+| created_at | DATETIME | 创建时间 |
+| updated_at | DATETIME | 更新时间 |
+
+### 2.4 options表（选项表）
+| 字段名 | 类型 | 描述 |
+| --- | --- | --- |
+| id | INT | 主键，自增 |
+| question_id | INT | 题目ID，外键关联questions表 |
+| option_content | TEXT | 选项内容 |
+| option_letter | VARCHAR(10) | 选项字母（A, B, C, D...） |
+| is_correct | TINYINT | 是否正确答案（1：是，0：否） |
+
+### 2.5 answers表（用户答题记录表）
+| 字段名 | 类型 | 描述 |
+| --- | --- | --- |
+| id | INT | 主键，自增 |
+| user_id | INT | 用户ID，外键关联users表 |
+| question_id | INT | 题目ID，外键关联questions表 |
+| answer | TEXT | 用户答案 |
+| is_correct | TINYINT | 是否正确（1：正确，0：错误） |
+| created_at | DATETIME | 创建时间 |
+
+### 2.6 wrong_questions表（错题记录表）
+| 字段名 | 类型 | 描述 |
+| --- | --- | --- |
+| id | INT | 主键，自增 |
+| user_id | INT | 用户ID，外键关联users表 |
+| question_id | INT | 题目ID，外键关联questions表 |
+| answer | TEXT | 用户答案 |
+| correct_answer | TEXT | 正确答案 |
+| created_at | DATETIME | 创建时间 |
+| reviewed | TINYINT | 是否已复习（1：是，0：否） |
+| reviewed_at | DATETIME | 复习时间 |
+
+### 2.7 system_settings表（系统设置表）
+| 字段名 | 类型 | 描述 |
+| --- | --- | --- |
+| id | INT | 主键，自增 |
+| key | VARCHAR(100) | 设置键 |
+| value | TEXT | 设置值 |
+| description | VARCHAR(255) | 设置描述 |
+| created_at | DATETIME | 创建时间 |
+| updated_at | DATETIME | 更新时间 |
+
+## 3. 初始化步骤
+
+### 3.1 目录结构创建
+- 创建css、js、layui、api、config、uploads目录
+- 确保uploads目录有写权限
+
+### 3.2 框架引入
+- 下载并引入layui框架到layui目录
+- 创建基础HTML结构，引入layui资源
+
+### 3.3 基础文件创建
+- 创建index.html作为首页
+- 创建login.html作为登录页
+- 创建register.html作为注册页
+- 创建api目录下的基础接口文件
+
+### 3.4 数据库初始化
+- 创建数据库（如果不存在）
+- 执行SQL脚本创建所有表
+- 插入基础数据（如默认分类、系统设置等）
+
+### 3.5 API接口设计
+- `api/login.php` - 登录接口
+- `api/register.php` - 注册接口
+- `api/get_questions.php` - 获取题目接口
+- `api/submit_answer.php` - 提交答案接口
+- `api/get_wrong_questions.php` - 获取错题接口
+- `api/import_data.php` - 数据导入接口
+- `api/system_settings.php` - 系统设置接口
+
+## 4. 技术实现要点
+
+### 4.1 响应式设计
+- 使用layui的响应式布局
+- 优先考虑手机竖版设计
+- 使用媒体查询适配不同屏幕尺寸
+
+### 4.2 前后端分离
+- 前端通过AJAX异步请求API
+- API返回JSON格式数据
+- 前端使用layui的form、table、layer等组件渲染页面
+
+### 4.3 安全性考虑
+- 密码加密存储（使用password_hash函数）
+- API接口添加验证机制
+- 防止SQL注入（使用PDO预处理语句）
+- 防止XSS攻击（数据过滤）
+- 上传文件类型和大小限制
+
+### 4.4 性能优化
+- 数据库索引优化
+- API接口缓存机制
+- 图片懒加载
+- 减少HTTP请求
+
+## 5. 后续开发计划
+
+- 完成用户认证模块
+- 完成答题系统模块
+- 完成错题管理模块
+- 完成数据导入模块
+- 完成系统设置模块
+- 进行测试和优化
+
+该计划将确保项目具备良好的可扩展性，便于后续功能开发。

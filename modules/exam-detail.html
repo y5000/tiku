@@ -1,0 +1,508 @@
+<!-- 答题详情页面 -->
+<div class="card">
+    <div class="card-title">
+        <i class="layui-icon layui-icon-list"></i>
+        答题详情
+        <button class="layui-btn layui-btn-primary layui-btn-sm" style="float: right;" id="backBtn">
+            <i class="layui-icon layui-icon-return"></i> 返回列表
+        </button>
+    </div>
+    <div class="card-content">
+        <!-- 答题概览 -->
+        <div class="layui-row layui-col-space15" style="margin-bottom: 20px;">
+            <div class="layui-col-md4">
+                <div class="layui-card">
+                    <div class="layui-card-header">考试基本信息</div>
+                    <div class="layui-card-body">
+                        <table class="layui-table layui-table-form">
+                            <tr>
+                                <td style="width: 80px;">考试类型</td>
+                                <td id="examType">--</td>
+                            </tr>
+                            <tr>
+                                <td>开始时间</td>
+                                <td id="startTime">--</td>
+                            </tr>
+                            <tr>
+                                <td>结束时间</td>
+                                <td id="endTime">--</td>
+                            </tr>
+                            <tr>
+                                <td>是否随机</td>
+                                <td id="isRandom">--</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-col-md4">
+                <div class="layui-card">
+                    <div class="layui-card-header">答题统计</div>
+                    <div class="layui-card-body">
+                        <table class="layui-table layui-table-form">
+                            <tr>
+                                <td style="width: 80px;">总题数</td>
+                                <td id="totalQuestions">--</td>
+                            </tr>
+                            <tr>
+                                <td>答对</td>
+                                <td><span style="color: #5FB878;" id="correctQuestions">--</span></td>
+                            </tr>
+                            <tr>
+                                <td>答错</td>
+                                <td><span style="color: #FF5722;" id="wrongQuestions">--</span></td>
+                            </tr>
+                            <tr>
+                                <td>未答</td>
+                                <td><span style="color: #999;" id="emptyQuestions">--</span></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-col-md4">
+                <div class="layui-card">
+                    <div class="layui-card-header">正确率统计</div>
+                    <div class="layui-card-body" style="text-align: center;">
+                        <div class="layui-progress layui-progress-big" lay-showpercent="yes" id="scoreProgress">{{d.score}}%</div>
+                        <div style="margin-top: 20px; font-size: 24px; font-weight: bold;" id="scoreText">--%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 答题详情列表 -->
+        <div class="layui-card">
+            <div class="layui-card-header">
+                答题详情
+                <div class="layui-form" style="float: right;">
+                    <div class="layui-inline">
+                        <select id="questionTypeFilter" lay-filter="questionTypeFilter">
+                            <option value="">全部题型</option>
+                            <option value="1">单选题</option>
+                            <option value="2">多选题</option>
+                            <option value="3">判断题</option>
+                        </select>
+                    </div>
+                    <div class="layui-inline">
+                        <select id="answerStatusFilter" lay-filter="answerStatusFilter">
+                            <option value="">全部状态</option>
+                            <option value="correct">正确</option>
+                            <option value="wrong">错误</option>
+                            <option value="empty">未答</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-card-body">
+                <div id="questionsList">
+                    <!-- 题目列表将通过JavaScript动态加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 获取URL参数
+    function getUrlParam(name) {
+        // 首先尝试从查询字符串中获取参数
+        var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) return decodeURIComponent(r[2]);
+        
+        // 如果查询字符串中没有，再尝试从hash中获取
+        r = window.location.hash.substr(1).match(reg);
+        if (r != null) return decodeURIComponent(r[2]);
+        
+        // 如果是通过layer.open打开的，从完整URL中获取
+        r = window.location.href.match(new RegExp('[?&]' + name + '=([^&#]*)'));
+        if (r != null) return decodeURIComponent(r[1]);
+        
+        return null;
+    }
+    
+    // 初始化页面
+    function initExamDetail() {
+        // 获取batch_id参数
+        var batchId = getUrlParam('batch_id');
+        if (!batchId) {
+            alert('缺少批次ID参数');
+            return;
+        }
+        
+        // 确保layui可用
+        if (typeof layui === 'undefined') {
+            // 如果layui未加载，添加定时器重试
+            setTimeout(initExamDetail, 100);
+            return;
+        }
+        
+        layui.use(['form', 'element', 'layer'], function() {
+            var form = layui.form;
+            var element = layui.element;
+            var layer = layui.layer;
+            
+            // 加载答题详情
+            function loadExamDetail() {
+                // 显示加载状态
+                var loading = layer.load(2, {
+                    shade: [0.3, '#fff']
+                });
+                
+                // 发送AJAX请求获取数据
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', 'api/exam-detail.php?batch_id=' + batchId, true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        layer.close(loading);
+                        
+                        if (xhr.status === 200) {
+                            var response = JSON.parse(xhr.responseText);
+                            if (response.code === 200) {
+                                var data = response.data;
+                                
+                                // 渲染基本信息
+                                renderBasicInfo(data.batch_info);
+                                
+                                // 渲染答题详情
+                                renderQuestions(data.answers);
+                            } else {
+                                layer.msg(response.msg || '获取详情失败', {icon: 5});
+                            }
+                        } else {
+                            layer.msg('网络错误，获取详情失败', {icon: 5});
+                        }
+                    }
+                };
+                xhr.send();
+            }
+            
+            // 渲染基本信息
+            function renderBasicInfo(batchInfo) {
+                if (batchInfo) {
+                    // 计算正确率
+                    var score = 0;
+                    if (batchInfo.total_questions > 0) {
+                        score = Math.round((batchInfo.correct_questions / batchInfo.total_questions) * 100);
+                    }
+                    
+                    // 填充基本信息
+                    document.getElementById('examType').textContent = batchInfo.exam_type || '随机答题';
+                    document.getElementById('startTime').textContent = batchInfo.start_time || '--';
+                    document.getElementById('endTime').textContent = batchInfo.end_time || '进行中';
+                    document.getElementById('isRandom').textContent = batchInfo.is_random ? '是' : '否';
+                    
+                    // 填充统计信息
+                    document.getElementById('totalQuestions').textContent = batchInfo.total_questions;
+                    document.getElementById('correctQuestions').textContent = batchInfo.correct_questions;
+                    document.getElementById('wrongQuestions').textContent = batchInfo.wrong_questions;
+                    document.getElementById('emptyQuestions').textContent = batchInfo.empty_questions;
+                    
+                    // 更新进度条和分数
+                    document.getElementById('scoreText').textContent = score + '%';
+                    
+                    // 初始化进度条
+                    var progressHtml = `<div class="layui-progress layui-progress-big" lay-showpercent="yes"><div class="layui-progress-bar" lay-percent="${score}%"></div></div>`;
+                    document.getElementById('scoreProgress').innerHTML = progressHtml;
+                    setTimeout(function() {
+                        element.render('progress');
+                    }, 100);
+                }
+            }
+            
+            // 渲染答题详情
+            function renderQuestions(answers) {
+                var container = document.getElementById('questionsList');
+                container.innerHTML = '';
+                
+                if (answers && answers.length > 0) {
+                    answers.forEach(function(item, index) {
+                        // 确定答题状态
+                        var status = 'empty';
+                        var statusText = '未答';
+                        var statusColor = '#999';
+                        
+                        if (item.user_answer) {
+                            if (item.user_answer === item.correct_answer) {
+                                status = 'correct';
+                                statusText = '正确';
+                                statusColor = '#5FB878';
+                            } else {
+                                status = 'wrong';
+                                statusText = '错误';
+                                statusColor = '#FF5722';
+                            }
+                        }
+                        
+                        // 题型
+                        var questionTypeText = '';
+                        switch (item.question_type) {
+                            case 1:
+                                questionTypeText = '单选题';
+                                break;
+                            case 2:
+                                questionTypeText = '多选题';
+                                break;
+                            case 3:
+                                questionTypeText = '判断题';
+                                break;
+                            default:
+                                questionTypeText = '未知题型';
+                        }
+                        
+                        // 渲染题目
+                        var questionHtml = `
+                            <div class="question-item" data-type="${item.question_type}" data-status="${status}">
+                                <div class="question-header">
+                                    <div class="question-num">第 ${index + 1} 题</div>
+                                    <div class="question-type">${questionTypeText}</div>
+                                    <div class="question-status" style="color: ${statusColor};">${statusText}</div>
+                                </div>
+                                <div class="question-content">
+                                    <p>${item.question_content}</p>
+                                </div>
+                                <div class="question-options">
+                                    ${renderOptions(item)}
+                                </div>
+                                <div class="question-answers">
+                                    <div class="user-answer">
+                                        <strong>我的答案：</strong>
+                                        <span style="color: ${statusColor};">${item.user_answer || '未答'}</span>
+                                    </div>
+                                    <div class="correct-answer">
+                                        <strong>正确答案：</strong>
+                                        <span style="color: #5FB878;">${item.correct_answer}</span>
+                                    </div>
+                                </div>
+                                ${item.explanation ? `<div class="question-explanation"><strong>解析：</strong>${item.explanation}</div>` : ''}
+                            </div>
+                        `;
+                        
+                        container.innerHTML += questionHtml;
+                    });
+                } else {
+                    container.innerHTML = '<div style="text-align: center; color: #999; padding: 40px;">暂无答题详情</div>';
+                }
+            }
+            
+            // 渲染选项
+            function renderOptions(item) {
+                var optionsHtml = '';
+                
+                // 处理选项
+                var options = {
+                    A: item.option_a,
+                    B: item.option_b,
+                    C: item.option_c,
+                    D: item.option_d,
+                    E: item.option_e,
+                    F: item.option_f
+                };
+                
+                for (var key in options) {
+                    if (options[key]) {
+                        // 确定选项样式
+                        var optionStyle = '';
+                        if (item.user_answer && item.user_answer.indexOf(key) !== -1) {
+                            if (item.user_answer === item.correct_answer) {
+                                // 用户答案正确
+                                optionStyle = ' style="background-color: #f0f9eb; color: #5FB878; border-color: #5FB878;"';
+                            } else if (item.correct_answer.indexOf(key) !== -1) {
+                                // 用户选择了部分正确答案
+                                optionStyle = ' style="background-color: #f0f9eb; color: #5FB878; border-color: #5FB878;"';
+                            } else {
+                                // 用户选择了错误答案
+                                optionStyle = ' style="background-color: #fef0f0; color: #ff4d4f; border-color: #ff4d4f;"';
+                            }
+                        } else if (item.correct_answer.indexOf(key) !== -1) {
+                            // 用户未选择，但这是正确答案
+                            optionStyle = ' style="background-color: #f0f9eb; color: #5FB878; border-color: #5FB878;"';
+                        }
+                        
+                        optionsHtml += `<div class="question-option"${optionStyle}>
+                            <span class="option-label">${key}</span>
+                            <span class="option-content">${options[key]}</span>
+                        </div>`;
+                    }
+                }
+                
+                return optionsHtml;
+            }
+            
+            // 返回按钮事件
+            var backBtn = document.getElementById('backBtn');
+            if (backBtn) {
+                backBtn.addEventListener('click', function() {
+                    // 返回做题记录列表
+                    if (window.NavAPI) {
+                        NavAPI.goTo('modules/exam-records.html');
+                    } else {
+                        window.history.back();
+                    }
+                });
+            }
+            
+            // 题型筛选
+            form.on('select(questionTypeFilter)', function(data) {
+                filterQuestions();
+            });
+            
+            // 答题状态筛选
+            form.on('select(answerStatusFilter)', function(data) {
+                filterQuestions();
+            });
+            
+            // 筛选题目
+            function filterQuestions() {
+                var typeFilter = document.getElementById('questionTypeFilter').value;
+                var statusFilter = document.getElementById('answerStatusFilter').value;
+                
+                var questionItems = document.querySelectorAll('.question-item');
+                questionItems.forEach(function(item) {
+                    var type = item.getAttribute('data-type');
+                    var status = item.getAttribute('data-status');
+                    
+                    var show = true;
+                    
+                    if (typeFilter && type !== typeFilter) {
+                        show = false;
+                    }
+                    
+                    if (statusFilter && status !== statusFilter) {
+                        show = false;
+                    }
+                    
+                    item.style.display = show ? 'block' : 'none';
+                });
+            }
+            
+            // 初始化加载数据
+            loadExamDetail();
+        });
+    }
+    
+    // 设置页面标题
+    if (window.HeaderAPI && HeaderAPI.setNavTitle) {
+        HeaderAPI.setNavTitle('答题详情');
+    }
+    
+    // 禁用下拉刷新
+    if (window.PullRefreshAPI) {
+        PullRefreshAPI.disable();
+    }
+    
+    // 初始化
+    initExamDetail();
+    
+    // 添加moduleLoaded事件监听器，确保页面在动态加载时能正确初始化
+    document.addEventListener('moduleLoaded', function(event) {
+        // 只在当前模块加载时初始化
+        if (event.detail.moduleUrl === 'modules/exam-detail.html') {
+            // 延迟初始化，确保layui和DOM完全加载
+            setTimeout(function() {
+                initExamDetail();
+            }, 50);
+        }
+    });
+    
+    // 初始化（兼容直接访问的情况）
+    initExamDetail();
+    
+    // 样式
+    var style = document.createElement('style');
+    style.textContent = `
+        .question-item {
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #fff;
+        }
+        
+        .question-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .question-num {
+            font-weight: bold;
+            margin-right: 15px;
+        }
+        
+        .question-type {
+            color: #1E9FFF;
+            margin-right: 15px;
+        }
+        
+        .question-status {
+            font-weight: bold;
+        }
+        
+        .question-content {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .question-options {
+            margin-bottom: 15px;
+        }
+        
+        .question-option {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+            cursor: default;
+            transition: all 0.3s;
+        }
+        
+        .question-option:hover {
+            background-color: #fafafa;
+        }
+        
+        .option-label {
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            line-height: 25px;
+            text-align: center;
+            background-color: #f0f0f0;
+            border-radius: 50%;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .question-answers {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #fafafa;
+            border-radius: 4px;
+        }
+        
+        .user-answer, .correct-answer {
+            margin-bottom: 5px;
+        }
+        
+        .question-explanation {
+            padding: 10px;
+            background-color: #f0f9eb;
+            border-left: 4px solid #5FB878;
+            border-radius: 0 4px 4px 0;
+            line-height: 1.6;
+        }
+        
+        .layui-table-form {
+            margin: 0;
+        }
+        
+        .layui-table-form td {
+            border: none;
+            padding: 8px 0;
+        }
+    `;
+    document.head.appendChild(style);
+</script>

@@ -1,0 +1,42 @@
+<!-- 错题统计 -->
+<div class="card" id="wrong-stats">
+    <div class="card-title">错题与收藏统计</div>
+    
+    <!-- 统计卡片 -->
+    <div class="stat-cards">
+        <div class="stat-card">
+            <div class="stat-number" id="total-wrong-count">0</div>
+            <div class="stat-label">错题总数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="total-favorite-count">0</div>
+            <div class="stat-label">收藏总数</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="total-unreviewed-count">0</div>
+            <div class="stat-label">未复习错题</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="total-reviewed-count">0</div>
+            <div class="stat-label">已复习错题</div>
+        </div>
+    </div>
+    
+    <!-- 图表区域 -->
+    <div style="margin-top: 20px;">
+        <div class="layui-row">
+            <div class="layui-col-md6">
+                <div class="card" style="height: 300px;">
+                    <div class="card-title">错题类型分布</div>
+                    <div id="wrong-type-chart" style="height: 250px;"></div>
+                </div>
+            </div>
+            <div class="layui-col-md6">
+                <div class="card" style="height: 300px;">
+                    <div class="card-title">错题难度分布</div>
+                    <div id="wrong-difficulty-chart" style="height: 250px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,71 @@
+<!-- 导入数据 -->
+<div class="card" id="import-data">
+    <div class="card-title">
+        <span>导入数据</span>
+        <button class="layui-btn layui-btn-sm layui-btn-primary" style="float: right; margin-right: 10px;" id="parse-btn">
+            <i class="layui-icon layui-icon-read"></i> 解析数据
+        </button>
+        <button class="layui-btn layui-btn-sm layui-btn-normal" style="float: right;" id="import-btn">
+            <i class="layui-icon layui-icon-upload"></i> 导入数据
+        </button>
+    </div>
+    
+    <!-- 导入说明 -->
+    <div class="layui-form-item">
+        <div class="layui-card">
+            <div class="layui-card-header">导入说明</div>
+            <div class="layui-card-body">
+                <ul style="list-style: decimal; padding-left: 20px;">
+                    <li>请按照以下格式准备数据，每行一条记录，字段之间用Tab分隔：</li>
+                    <li>格式：序号	类型	题目	选项	答案	答案解析</li>
+                    <li>类型支持：单选、多选、判断、填空、简答</li>
+                    <li>选项用竖线分隔，例如：选项1|选项2|选项3|选项4</li>
+                    <li>填空和简答题不需要选项，直接在答案列填写答案</li>
+                    <li>序号不需要入库，仅作为行标识</li>
+                    <li>支持上传txt文件或excel文件（仅支持xlsx格式）</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 文件上传区域 -->
+    <div class="layui-form-item">
+        <label class="layui-form-label">文件上传</label>
+        <div class="layui-input-block">
+            <button type="button" class="layui-btn" id="upload-btn">
+                <i class="layui-icon layui-icon-upload"></i> 选择文件
+            </button>
+            <input type="file" id="file-upload" accept=".txt,.xlsx" style="display: none;">
+            <div id="file-name" style="margin-top: 10px; color: #666;"></div>
+        </div>
+    </div>
+    
+    <!-- 数据输入区域 -->
+    <div class="layui-form-item">
+        <label class="layui-form-label">数据输入</label>
+        <div class="layui-input-block">
+            <textarea name="import_data" placeholder="请粘贴要导入的数据或上传文件" class="layui-textarea" style="height: 200px;"></textarea>
+        </div>
+    </div>
+    
+    <!-- 解析结果预览区域 -->
+    <div class="layui-form-item">
+        <label class="layui-form-label">解析结果</label>
+        <div class="layui-input-block">
+            <table class="layui-table" id="parse-result" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>类型</th>
+                        <th>题目</th>
+                        <th>选项</th>
+                        <th>答案</th>
+                        <th>解析</th>
+                    </tr>
+                </thead>
+                <tbody id="parse-result-body"></tbody>
+            </table>
+            <div id="parse-status" style="display: none; margin-top: 10px;"></div>
+        </div>
+    </div>
+</div>

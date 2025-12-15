@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>题库系统</title>
+    <!-- 引入layui CSS -->
+    <link rel="stylesheet" href="https://lib.baomitu.com/layui/2.8.18/css/layui.css">
+    <style>
+        body {
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+        }
+        .container {
+            padding: 80px 20px 20px;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .layui-btn-primary {
+            border: 1px solid #23915f;
+            color: #23915f;
+        }
+        .layui-btn-primary:hover {
+            background-color: #23915f;
+            color: #fff;
+        }
+        /* 主内容区底部留出空间 */
+        .container {
+            padding-bottom: 80px;
+        }
+        /* 加载指示器样式 */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        /* 首页功能模块样式 */
+        .function-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .function-item {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            height: 140px;
+            box-sizing: border-box;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .function-item:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+        .function-item i {
+            font-size: 40px;
+            color: #23915f;
+            margin-bottom: 10px;
+        }
+        .function-item .title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .function-item .desc {
+            font-size: 14px;
+            color: #666;
+        }
+        /* 下拉刷新样式 */
+        .pull-refresh {
+            height: 50px;
+            line-height: 50px;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            background-color: #f2f2f2;
+            margin-top: -50px;
+            transition: all 0.3s ease;
+        }
+        .pull-refresh .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #23915f;
+            border-top-color: transparent;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 内容容器样式修改 */
+        .content-wrapper {
+            transition: transform 0.3s ease;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- 动态加载头部导航 -->
+    <div id="headerContainer"></div>
+
+    <!-- 内容包装器 -->
+    <div class="content-wrapper" id="contentWrapper">
+        <!-- 下拉刷新区域 -->
+        <div class="pull-refresh" id="pullRefresh">
+            <span id="refreshText">下拉刷新</span>
+            <span class="loading" id="refreshLoading" style="display: none;"></span>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="container">
+            <!-- 模块内容的占位符，模块文件将通过JavaScript动态插入内容 -->
+            <div id="moduleContent"></div>
+        </div>
+    </div>
+    
+    <!-- 动态加载底部导航 -->
+    <div id="footerContainer"></div>
+
+    <!-- 引入layui JS -->
+    <script src="https://lib.baomitu.com/layui/2.8.18/layui.js"></script>
+    <script>
+        // 页面模板API
+        window.TemplateAPI = {
+            // 加载头部导航
+            loadHeader: function(callback) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', 'components/header.html', true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        var container = document.getElementById('headerContainer');
+                        
+                        // 清空容器
+                        container.innerHTML = '';
+                        
+                        // 创建临时div来解析HTML
+                        var tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = xhr.responseText;
+                        
+                        // 提取并执行脚本
+                        var scripts = tempDiv.querySelectorAll('script');
+                        var scriptPromises = Array.from(scripts).map(function(script) {
+                            return new Promise(function(resolve) {
+                                var newScript = document.createElement('script');
+                                
+                                // 复制属性
+                                if (script.src) {
+                                    // 外部脚本
+                                    newScript.src = script.src;
+                                    newScript.onload = resolve;
+                                    newScript.onerror = resolve; // 即使出错也继续
+                                } else {
+                                    // 内联脚本
+                                    newScript.textContent = script.textContent;
+                                    resolve();
+                                }
+                                
+                                // 添加到页面执行
+                                document.body.appendChild(newScript);
+                                
+                                // 执行后移除
+                                setTimeout(function() {
+                                    document.body.removeChild(newScript);
+                                }, 0);
+                            });
+                        });
+                        
+                        // 移除脚本标签
+                        scripts.forEach(function(script) {
+                            script.remove();
+                        });
+                        
+                        // 添加HTML到容器
+                        container.appendChild(tempDiv);
+                        
+                        // 等待所有脚本执行完成
+                        Promise.all(scriptPromises).then(function() {
+                            if (callback) callback();
+                        });
+                    }
+                };
+                xhr.send();
+            },
+            
+            // 加载底部导航
+            loadFooter: function(callback) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', 'components/footer.html', true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        var container = document.getElementById('footerContainer');
+                        
+                        // 清空容器
+                        container.innerHTML = '';
+                        
+                        // 创建临时div来解析HTML
+                        var tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = xhr.responseText;
+                        
+                        // 提取并执行脚本
+                        var scripts = tempDiv.querySelectorAll('script');
+                        var scriptPromises = Array.from(scripts).map(function(script) {
+                            return new Promise(function(resolve) {
+                                var newScript = document.createElement('script');
+                                
+                                // 复制属性
+                                if (script.src) {
+                                    // 外部脚本
+                                    newScript.src = script.src;
+                                    newScript.onload = resolve;
+                                    newScript.onerror = resolve; // 即使出错也继续
+                                } else {
+                                    // 内联脚本
+                                    newScript.textContent = script.textContent;
+                                    resolve();
+                                }
+                                
+                                // 添加到页面执行
+                                document.body.appendChild(newScript);
+                                
+                                // 执行后移除
+                                setTimeout(function() {
+                                    document.body.removeChild(newScript);
+                                }, 0);
+                            });
+                        });
+                        
+                        // 移除脚本标签
+                        scripts.forEach(function(script) {
+                            script.remove();
+                        });
+                        
+                        // 添加HTML到容器
+                        container.appendChild(tempDiv);
+                        
+                        // 等待所有脚本执行完成
+                        Promise.all(scriptPromises).then(function() {
+                            if (callback) callback();
+                        });
+                    }
+                };
+                xhr.send();
+            },
+            
+            // 加载模块内容
+            loadModule: function(moduleUrl, callback) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', moduleUrl, true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        var container = document.getElementById('moduleContent');
+                        
+                        // 清空容器
+                        container.innerHTML = '';
+                        
+                        // 创建临时div来解析HTML
+                        var tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = xhr.responseText;
+                        
+                        // 提取并执行脚本
+                        var scripts = tempDiv.querySelectorAll('script');
+                        var scriptPromises = Array.from(scripts).map(function(script) {
+                            return new Promise(function(resolve) {
+                                var newScript = document.createElement('script');
+                                
+                                // 复制属性
+                                if (script.src) {
+                                    // 外部脚本
+                                    newScript.src = script.src;
+                                    newScript.onload = resolve;
+                                    newScript.onerror = resolve; // 即使出错也继续
+                                } else {
+                                    // 内联脚本
+                                    newScript.textContent = script.textContent;
+                                    resolve();
+                                }
+                                
+                                // 添加到页面执行
+                                document.body.appendChild(newScript);
+                                
+                                // 执行后移除
+                                setTimeout(function() {
+                                    document.body.removeChild(newScript);
+                                }, 0);
+                            });
+                        });
+                        
+                        // 移除脚本标签
+                        scripts.forEach(function(script) {
+                            script.remove();
+                        });
+                        
+                        // 添加HTML到容器
+                        container.appendChild(tempDiv);
+                        
+                        // 设置当前模块URL，用于导航高亮
+                        window.currentModule = moduleUrl;
+                        // 更新导航状态
+                        updateNavActive();
+                        
+                        // 等待所有脚本执行完成
+                        Promise.all(scriptPromises).then(function() {
+                            // 触发模块加载完成事件
+                            var event = new CustomEvent('moduleLoaded', {
+                                detail: { moduleUrl: moduleUrl }
+                            });
+                            document.dispatchEvent(event);
+                            
+                            if (callback) callback();
+                        });
+                    }
+                };
+                xhr.send();
+            },
+            
+            // 初始化页面
+            init: function(options) {
+                var defaultOptions = {
+                    header: true,
+                    footer: true,
+                    moduleUrl: '',
+                    onLoad: null
+                };
+                
+                var opts = Object.assign(defaultOptions, options);
+                var loadCount = 0;
+                var totalLoads = 0;
+                
+                if (opts.header) totalLoads++;
+                if (opts.footer) totalLoads++;
+                if (opts.moduleUrl) totalLoads++;
+                
+                var checkComplete = function() {
+                    loadCount++;
+                    if (loadCount >= totalLoads && opts.onLoad) {
+                        opts.onLoad();
+                    }
+                };
+                
+                if (opts.header) {
+                    this.loadHeader(checkComplete);
+                }
+                
+                if (opts.footer) {
+                    this.loadFooter(checkComplete);
+                }
+                
+                if (opts.moduleUrl) {
+                    this.loadModule(opts.moduleUrl, checkComplete);
+                }
+            }
+        };
+
+        // 导航API，用于页面内跳转
+        window.NavAPI = {
+            // 跳转到指定模块
+            goTo: function(moduleUrl) {
+                // 如果当前已经在目标页面，不执行任何操作
+                if (window.currentModule === moduleUrl) {
+                    return;
+                }
+                
+                // 更新URL，但不刷新页面
+                window.history.pushState({module: moduleUrl}, '', '#/' + moduleUrl);
+                // 加载模块内容
+                TemplateAPI.loadModule(moduleUrl);
+            },
+            
+            // 初始化导航事件监听
+            init: function() {
+                // 监听浏览器前进后退事件
+                window.addEventListener('popstate', function(event) {
+                    if (event.state && event.state.module) {
+                        TemplateAPI.loadModule(event.state.module);
+                    }
+                });
+            }
+        };
+        
+        // 更新导航活动状态
+        function updateNavActive() {
+            // 等待DOM加载完成
+            setTimeout(function() {
+                var navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(function(item) {
+                    item.classList.remove('active');
+                });
+                
+                // 根据当前模块设置活动导航
+                if (window.currentModule) {
+                    var navElement;
+                    if (window.currentModule === 'modules/all-answer.html') {
+                        // 现在all-answer.html是答题页面，激活答题导航
+                        navElement = document.querySelector('[data-nav="answer"]');
+                    } else if (window.currentModule === 'modules/home-blank.html') {
+                        // home-blank.html是新的空白首页，激活首页导航
+                        navElement = document.querySelector('[data-nav="home"]');
+                    } else if (window.currentModule === 'modules/answer-content.html') {
+                        navElement = document.querySelector('[data-nav="answer"]');
+                    } else if (window.currentModule === 'modules/error-notebook-content.html') {
+                        navElement = document.querySelector('[data-nav="error-notebook"]');
+                    } else if (window.currentModule === 'modules/collection-content.html') {
+                        // 收藏页面，激活"错题/收藏"导航
+                        navElement = document.querySelector('[data-nav="error-notebook"]');
+                    } else if (window.currentModule === 'modules/exam-records.html') {
+                        // 考试记录页面，激活"答题记录"导航
+                        navElement = document.querySelector('[data-nav="record"]');
+                    } else if (window.currentModule === 'modules/my-content.html') {
+                        navElement = document.querySelector('[data-nav="my"]');
+                    }
+                    
+                    // 确保元素存在后再添加active类
+                    if (navElement) {
+                        navElement.classList.add('active');
+                    }
+                } else {
+                    // 默认激活首页
+                    document.querySelector('[data-nav="home"]').classList.add('active');
+                }
+            }, 100);
+        }
+        
+        // 下拉刷新功能实现
+        var pullRefreshEnabled = true; // 控制下拉刷新是否启用
+        
+        function initPullRefresh() {
+            // 获取DOM元素
+            var container = document.querySelector('.container');
+            var contentWrapper = document.getElementById('contentWrapper');
+            var pullRefresh = document.getElementById('pullRefresh');
+            var refreshText = document.getElementById('refreshText');
+            var refreshLoading = document.getElementById('refreshLoading');
+            
+            // 状态变量
+            var startY = 0; // 触摸起始位置
+            var moveY = 0; // 移动位置
+            var currentY = 0; // 当前下拉距离
+            var isPulling = false; // 是否正在下拉
+            var isRefreshing = false; // 是否正在刷新
+            var threshold = 80; // 触发刷新的阈值
+            
+            // 暴露启用/禁用下拉刷新的方法
+            window.PullRefreshAPI = {
+                enable: function() {
+                    pullRefreshEnabled = true;
+                },
+                disable: function() {
+                    pullRefreshEnabled = false;
+                }
+            };
+            
+            // 触摸开始事件
+            document.addEventListener('touchstart', function(e) {
+                // 只有当下拉刷新启用、滚动到顶部且不在刷新中时才允许下拉
+                if (pullRefreshEnabled && container.scrollTop <= 0 && !isRefreshing) {
+                    startY = e.touches[0].clientY;
+                    isPulling = true;
+                }
+            }, false);
+            
+            // 触摸移动事件
+            document.addEventListener('touchmove', function(e) {
+                // 只有当下拉刷新启用、正在下拉且不在刷新中时才处理
+                if (!pullRefreshEnabled || !isPulling || isRefreshing) return;
+                
+                moveY = e.touches[0].clientY;
+                currentY = moveY - startY;
+                
+                // 只有向下拉才触发
+                if (currentY > 0) {
+                    e.preventDefault();
+                    
+                    // 计算下拉距离，添加阻尼效果
+                    var pullDistance = Math.min(currentY * 0.5, threshold + 20);
+                    
+                    // 更新内容包装器的位置，实现整体下拉效果
+                    contentWrapper.style.transform = 'translateY(' + pullDistance + 'px)';
+                    
+                    // 更新提示文字
+                    if (pullDistance >= threshold) {
+                        refreshText.textContent = '松开刷新';
+                    } else {
+                        refreshText.textContent = '下拉刷新';
+                    }
+                }
+            }, false);
+            
+            // 触摸结束事件
+            document.addEventListener('touchend', function() {
+                // 只有当下拉刷新启用、正在下拉且不在刷新中时才处理
+                if (!pullRefreshEnabled || !isPulling || isRefreshing) {
+                    isPulling = false;
+                    return;
+                }
+                
+                isPulling = false;
+                
+                // 检查是否达到刷新阈值
+                if (currentY * 0.5 >= threshold) {
+                    // 触发刷新
+                    doRefresh();
+                } else {
+                    // 恢复原位
+                    contentWrapper.style.transform = 'translateY(0)';
+                    refreshText.textContent = '下拉刷新';
+                }
+                
+                // 重置变量
+                currentY = 0;
+            }, false);
+            
+            // 执行刷新操作
+            function doRefresh() {
+                isRefreshing = true;
+                
+                // 更新UI状态
+                contentWrapper.style.transform = 'translateY(50px)';
+                refreshText.textContent = '正在刷新...';
+                refreshLoading.style.display = 'inline-block';
+                
+                // 模拟刷新数据（2秒后完成）
+                setTimeout(function() {
+                    // 刷新完成，恢复原位
+                    contentWrapper.style.transform = 'translateY(0)';
+                    refreshText.textContent = '下拉刷新';
+                    refreshLoading.style.display = 'none';
+                    isRefreshing = false;
+                    
+                    // 可以在这里添加实际的刷新逻辑，比如重新获取数据
+                    console.log('刷新完成');
+                    
+                    // 提示刷新成功
+                    // 可以使用layui的layer.msg或者原生alert
+                    if (typeof layui !== 'undefined' && layui.layer) {
+                        layui.layer.msg('刷新成功', {icon: 1, time: 1000});
+                    } else {
+                        // 原生提示
+                        var msg = document.createElement('div');
+                        msg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 10px 20px; background: rgba(0,0,0,0.7); color: white; border-radius: 5px; z-index: 9999;';
+                        msg.textContent = '刷新成功';
+                        document.body.appendChild(msg);
+                        setTimeout(function() {
+                            document.body.removeChild(msg);
+                        }, 1000);
+                    }
+                }, 2000);
+            }
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化导航
+            NavAPI.init();
+            
+            // 初始化页面，加载首页内容
+            TemplateAPI.init({
+                header: true,
+                footer: true,
+                moduleUrl: 'modules/home-blank.html',
+                onLoad: function() {
+                    // 初始化下拉刷新
+                    initPullRefresh();
+                    
+                    // 调用HeaderAPI加载网站名称
+                    if (window.HeaderAPI && HeaderAPI.loadSiteName) {
+                        HeaderAPI.loadSiteName();
+                    }
+                    
+                    console.log('页面初始化完成');
+                }
+            });
+        });
+        
+        // 覆盖默认的链接点击行为，使用导航API进行页面内跳转
+        document.addEventListener('click', function(e) {
+            var target = e.target;
+            // 查找最近的带有data-href属性的元素
+            while (target && !target.hasAttribute('data-href')) {
+                target = target.parentElement;
+                if (!target) return;
+            }
+            
+            if (target) {
+                e.preventDefault();
+                var href = target.getAttribute('data-href');
+                if (href) {
+                    NavAPI.goTo(href);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

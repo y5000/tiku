@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>题库系统</title>
+    <!-- 引入layui CSS -->
+    <link rel="stylesheet" href="https://lib.baomitu.com/layui/2.8.18/css/layui.css">
+    <style>
+        body {
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+            font-family: "Microsoft YaHei", Arial, sans-serif;
+        }
+        .container {
+            padding: 80px 20px 20px;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .layui-btn-primary {
+            border: 1px solid #23915f;
+            color: #23915f;
+        }
+        .layui-btn-primary:hover {
+            background-color: #23915f;
+            color: #fff;
+        }
+        /* 主内容区底部留出空间 */
+        .container {
+            padding-bottom: 80px;
+        }
+        /* 加载指示器样式 */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <!-- 动态加载头部导航 -->
+    <div id="headerContainer"></div>
+
+    <!-- 主内容区 -->
+    <div class="container">
+        <!-- 这里是模块内容的占位符，模块文件将通过JavaScript动态插入内容 -->
+        <div id="moduleContent"></div>
+    </div>
+    
+    <!-- 动态加载底部导航 -->
+    <div id="footerContainer"></div>
+
+    <!-- 引入layui JS -->
+    <script src="https://lib.baomitu.com/layui/2.8.18/layui.js"></script>
+    <script>
+        // 页面模板API
+        window.TemplateAPI = {
+            // 加载头部导航
+            loadHeader: function(callback) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', 'components/header.html', true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        document.getElementById('headerContainer').innerHTML = xhr.responseText;
+                        if (callback) callback();
+                    }
+                };
+                xhr.send();
+            },
+            
+            // 加载底部导航
+            loadFooter: function(callback) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', 'components/footer.html', true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        document.getElementById('footerContainer').innerHTML = xhr.responseText;
+                        if (callback) callback();
+                    }
+                };
+                xhr.send();
+            },
+            
+            // 加载模块内容
+            loadModule: function(moduleUrl, callback) {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', moduleUrl, true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        document.getElementById('moduleContent').innerHTML = xhr.responseText;
+                        if (callback) callback();
+                    }
+                };
+                xhr.send();
+            },
+            
+            // 初始化页面
+            init: function(options) {
+                var defaultOptions = {
+                    header: true,
+                    footer: true,
+                    moduleUrl: '',
+                    onLoad: null
+                };
+                
+                var opts = Object.assign(defaultOptions, options);
+                var loadCount = 0;
+                var totalLoads = 0;
+                
+                if (opts.header) totalLoads++;
+                if (opts.footer) totalLoads++;
+                if (opts.moduleUrl) totalLoads++;
+                
+                var checkComplete = function() {
+                    loadCount++;
+                    if (loadCount >= totalLoads && opts.onLoad) {
+                        opts.onLoad();
+                    }
+                };
+                
+                if (opts.header) {
+                    this.loadHeader(checkComplete);
+                }
+                
+                if (opts.footer) {
+                    this.loadFooter(checkComplete);
+                }
+                
+                if (opts.moduleUrl) {
+                    this.loadModule(opts.moduleUrl, checkComplete);
+                }
+            }
+        };
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 默认初始化，具体模块可以重写此方法
+            TemplateAPI.init({
+                header: true,
+                footer: true,
+                onLoad: function() {
+                    console.log('页面初始化完成');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

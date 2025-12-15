@@ -1,0 +1,1015 @@
+<!-- 答题页面内容 -->
+<style>
+    .question-counter {
+        margin-right: 20px;
+        font-size: 14px;
+    }
+    .question-content {
+        font-size: 16px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-left: 4px solid #23915f;
+        border-radius: 4px;
+    }
+    .option-item {
+        margin-bottom: 15px;
+        padding: 12px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    .option-item:hover {
+        background-color: #e9ecef;
+    }
+    .option-item.selected {
+        background-color: #23915f;
+        color: #fff;
+    }
+    .option-item.selected:hover {
+        background-color: #1e7e4f;
+    }
+    .option-letter {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        text-align: center;
+        background-color: #23915f;
+        color: #fff;
+        border-radius: 50%;
+        margin-right: 10px;
+        font-weight: bold;
+    }
+    .option-item.selected .option-letter {
+        background-color: #fff;
+        color: #23915f;
+    }
+    .answer-section {
+        margin-top: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        display: none;
+    }
+    .answer-section.show {
+        display: block;
+    }
+    .analysis-title {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #23915f;
+    }
+    .btn-group {
+        margin-top: 20px;
+        display: flex;
+        gap: 10px;
+    }
+    .result-section {
+        text-align: center;
+        padding: 20px 10px;
+    }
+    .result-icon {
+        margin-bottom: 20px;
+    }
+    .result-icon i {
+        font-size: 188px;
+    }
+    .result-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .result-score {
+        font-size: 48px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        color: #23915f;
+    }
+    .result-desc {
+        margin-bottom: 30px;
+        color: #666;
+    }
+    /* 调整详细结果卡片的内边距 */
+    .layui-card-header {
+        padding: 10px 15px;
+    }
+    .layui-card-body {
+        padding: 15px;
+    }
+    /* 减少结果卡片的内边距 */
+    #result-card {
+        padding: 10px;
+    }
+</style>
+
+<!-- 答题卡片 -->
+<div class="card" id="answer-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div class="card-title">题目</div>
+        <button class="layui-btn layui-btn-danger" id="end-btn">结束答题</button>
+    </div>
+    <div style="text-align: right; margin-bottom: 15px; font-size: 14px; color: #666;">
+        第 <span id="current-question">1</span>/<span id="total-questions">10</span> 题
+    </div>
+    <div class="question-content" id="question-content"></div>
+    
+    <!-- 选项区域 -->
+    <div class="options-container" id="options-container"></div>
+    
+    <!-- 答案和解析区域 -->
+    <div class="answer-section" id="answer-section">
+        <div class="analysis-title">参考答案：</div>
+        <div id="correct-answer"></div>
+        <div class="analysis-title" style="margin-top: 15px;">解析：</div>
+        <div id="analysis"></div>
+    </div>
+    
+    <!-- 按钮组 - 使用LayUI栅格布局，适配所有屏幕大小 -->
+    <div class="layui-row layui-col-space5" style="margin-top: 20px;">
+        <div class="layui-col-xs4 layui-col-sm4 layui-col-md4">
+            <div style="text-align: center;">
+                <button class="layui-btn layui-btn-primary" id="prev-btn" style="width: 100%;">上一题</button>
+            </div>
+        </div>
+        <div class="layui-col-xs4 layui-col-sm4 layui-col-md4">
+            <div style="text-align: center;">
+                <button class="layui-btn layui-btn-primary" id="check-btn" style="width: 100%;">查看答案</button>
+            </div>
+        </div>
+        <div class="layui-col-xs4 layui-col-sm4 layui-col-md4">
+            <div style="text-align: center;">
+                <button class="layui-btn layui-btn-normal" id="next-btn" style="width: 100%;">下一题</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 结果卡片 -->
+<div class="card" id="result-card" style="display: none;">
+    <div class="result-section">
+        <div class="result-icon" id="result-icon"></div>
+        <div class="result-title" id="result-title"></div>
+        <div class="result-score" id="result-score"></div>
+        <div class="result-desc" id="result-desc"></div>
+        <div class="btn-group" style="justify-content: center;">
+            <button class="layui-btn layui-btn-normal" id="restart-btn">重新答题</button>
+            <button class="layui-btn layui-btn-primary" id="back-home-btn">返回首页</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 设置导航标题为"答题"
+    if (window.HeaderAPI) {
+        HeaderAPI.setNavTitle('答题');
+    }
+    
+    // 答题相关变量
+    var questions = [];
+    var originalQuestions = [];
+    var currentQuestionIndex = 0;
+    var totalQuestions = 0;
+    var userAnswers = [];
+    var isChecked = false;
+    var selectedQuestionCount = 50; // 默认答题数量
+    
+    // 初始化答题
+    function initAnswer() {
+        // 显示选择答题数量弹窗
+        showQuestionCountModal();
+    }
+    
+    // 显示选择答题数量弹窗
+    function showQuestionCountModal() {
+        console.log('showQuestionCountModal called, trying to open layer modal...');
+        
+        try {
+            // 确保layer可用
+            if (typeof layer === 'undefined') {
+                console.error('❌ layer is not available!');
+                return;
+            }
+            
+            console.log('✅ layer is available, calling layer.open()...');
+            
+            // 构建弹窗内容
+            var modalContent = '<div style="padding: 20px; width: 420px; overflow: hidden; height: 360px;">' +
+                '<div class="layui-form" id="answer-settings-form">' +
+                '<div style="display: flex; gap: 5px;">' +
+                '<div style="flex: 1;">' +
+                '<div class="layui-form-item">' +
+                '<label class="layui-form-label">答题数量</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="number" id="question-count" placeholder="请输入答题数量" class="layui-input" style="width: 80px;" value="50" min="1" max="100">' +
+                '</div>' +
+                '<div style="margin-top: 10px; color: #666; font-size: 12px;">默认50题，范围1-100题</div>' +
+                '</div>' +
+                '</div>' +
+                '<div style="flex: 1;">' +
+                '<div class="layui-form-item">' +
+                '<label class="layui-form-label">起始题数</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="number" id="start-question" placeholder="请输入起始题数" class="layui-input" style="width: 80px;" value="1" min="1">' +
+                '</div>' +
+                '<div style="margin-top: 10px; color: #666; font-size: 12px;">从第N题开始出题，默认为1</div>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                
+                '<div class="layui-form-item">' +
+                '<label class="layui-form-label">题型选择</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="checkbox" name="question-types" lay-skin="tag" title="单选题" value="1" checked>' +
+                '<input type="checkbox" name="question-types" lay-skin="tag" title="多选题" value="2" checked>' +
+                '<input type="checkbox" name="question-types" lay-skin="tag" title="判断题" value="3" checked>' +
+                '<input type="checkbox" name="question-types" lay-skin="tag" title="填空题" value="4">' +
+                '<input type="checkbox" name="question-types" lay-skin="tag" title="简答题" value="5">' +
+                '</div>' +
+                '</div>' +
+                
+                '<div class="layui-form-item">' +
+                '<label class="layui-form-label">随机出题</label>' +
+                '<div class="layui-input-block">' +
+                '<input type="checkbox" name="random-questions" id="random-questions" lay-skin="tag" title="随机出题">' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div>';
+            
+            console.log('📋 Modal content prepared, opening modal...');
+            
+            // 调用layer.open
+            var modalIndex = layer.open({
+                type: 1,
+                title: '答题设置',
+                content: modalContent,
+                area: ['460px', '400px'],
+                success: function(layero, index) {
+                    console.log('✅ Modal opened successfully, index:', index);
+                    
+                    // 渲染form表单，确保复选框显示正确
+                    layui.use('form', function() {
+                        console.log('📋 Rendering form...');
+                        var form = layui.form;
+                        form.render();
+                        console.log('✅ Form rendered successfully');
+                    });
+                },
+                btn: ['开始答题', '取消'],
+                btn1: function(index, layero) {
+                    console.log('🔘 Start button clicked, index:', index);
+                    
+                    // 获取用户选择的答题数量
+                    var count = parseInt(document.getElementById('question-count').value) || 50;
+                    // 限制范围1-100
+                    count = Math.max(1, Math.min(100, count));
+                    selectedQuestionCount = count;
+                    console.log('📝 Selected question count:', count);
+                    
+                    // 获取用户选择的题型
+                    var selectedTypes = [];
+                    var formElement = document.getElementById('answer-settings-form');
+                    var typeCheckboxes = formElement.querySelectorAll('input[name="question-types"]:checked');
+                    for (var i = 0; i < typeCheckboxes.length; i++) {
+                        selectedTypes.push(parseInt(typeCheckboxes[i].value));
+                    }
+                    console.log('📝 Selected question types:', selectedTypes);
+                    
+                    // 获取是否随机出题
+                    var isRandomCheckbox = formElement.querySelector('#random-questions');
+                    var isRandom = isRandomCheckbox ? isRandomCheckbox.checked : true;
+                    console.log('🎲 Random questions:', isRandom);
+                    
+                    // 获取起始题数
+                    var startQuestion = parseInt(document.getElementById('start-question').value) || 1;
+                    startQuestion = Math.max(1, startQuestion);
+                    console.log('📌 Start question:', startQuestion);
+                    
+                    // 如果没有选择题型，默认选择所有题型
+                    if (selectedTypes.length === 0) {
+                        selectedTypes = [1, 2, 3, 4, 5];
+                        console.log('📋 No question types selected, using default:', selectedTypes);
+                    }
+                    
+                    // 获取题目列表
+                    console.log('🔍 Calling fetchQuestions()...');
+                    fetchQuestions(selectedTypes, isRandom, startQuestion);
+                    
+                    // 关闭弹窗
+                    console.log('🚪 Closing modal...');
+                    layer.close(index);
+                },
+                btn2: function(index, layero) {
+                    console.log('🔘 Cancel button clicked, index:', index);
+                    // 取消按钮：跳转到首页
+                    NavAPI.goTo('modules/all-answer.html');
+                },
+                cancel: function(index) {
+                    console.log('❌ Modal cancelled, index:', index);
+                    // 点击遮罩关闭也跳转到首页
+                    NavAPI.goTo('modules/all-answer.html');
+                }
+            });
+            
+            console.log('🔢 Modal index returned:', modalIndex);
+            
+        } catch (error) {
+            console.error('❌ Error in showQuestionCountModal:', error);
+            // 如果弹窗失败，直接获取题目列表，跳过设置
+            console.log('🔄 Modal failed, using default settings and calling fetchQuestions() directly...');
+            fetchQuestions([1, 2, 3], false, 1);
+        }
+    }
+    
+    // 获取题目列表
+    function fetchQuestions(selectedTypes = [1, 2, 3, 4, 5], isRandom = false, startQuestion = 1) {
+        fetch('api/questions.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 200) {
+                    originalQuestions = data.data;
+                    
+                    // 1. 过滤题型
+                    originalQuestions = originalQuestions.filter(question => selectedTypes.includes(question.type));
+                    
+                    // 2. 随机排序
+                    if (isRandom) {
+                        originalQuestions.sort(() => Math.random() - 0.5);
+                    } else {
+                        // 非随机时保持原有顺序
+                        originalQuestions.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+                    }
+                    
+                    // 3. 应用起始题数
+                    let startIndex = startQuestion - 1;
+                    startIndex = Math.max(0, Math.min(startIndex, originalQuestions.length - 1));
+                    
+                    // 4. 截取用户选择的答题数量
+                    questions = originalQuestions.slice(startIndex, startIndex + selectedQuestionCount);
+                    totalQuestions = questions.length;
+                    document.getElementById('total-questions').textContent = totalQuestions;
+                    
+                    // 重置答题状态
+                    currentQuestionIndex = 0;
+                    userAnswers = [];
+                    isChecked = false;
+                    
+                    // 显示第一题
+                    showQuestion(currentQuestionIndex);
+                } else {
+                    alert('获取题目失败：' + data.msg);
+                }
+            })
+            .catch(error => {
+                console.error('获取题目失败：', error);
+                alert('获取题目失败，请稍后重试');
+            });
+    }
+    
+    // 显示题目
+    function showQuestion(index) {
+        if (index >= 0 && index < questions.length) {
+            currentQuestionIndex = index;
+            var question = questions[index];
+            
+            document.getElementById('current-question').textContent = index + 1;
+            document.getElementById('question-content').innerHTML = question.content;
+            
+            // 生成选项
+            generateOptions(question);
+            
+            // 重置状态
+            isChecked = false;
+            document.getElementById('answer-section').classList.remove('show');
+            document.getElementById('check-btn').style.display = 'inline-block';
+            document.getElementById('next-btn').textContent = index === questions.length - 1 ? '完成' : '下一题';
+            
+            // 始终显示上一题按钮，在第一题时禁用
+            var prevBtn = document.getElementById('prev-btn');
+            prevBtn.style.display = 'inline-block';
+            prevBtn.disabled = index === 0;
+            prevBtn.className = index === 0 ? 'layui-btn layui-btn-primary layui-btn-disabled' : 'layui-btn layui-btn-primary';
+        }
+    }
+    
+    // 生成选项
+    function generateOptions(question) {
+        var optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
+        
+        // 判断题
+        if (question.type === 3) {
+            // 从数据库读取选项内容，用竖线分隔
+            var options = question.options ? question.options.split('|') : ['正确', '错误'];
+            options.forEach((option, index) => {
+                var optionItem = document.createElement('div');
+                optionItem.className = 'option-item';
+                var letter = String.fromCharCode(65 + index);
+                optionItem.innerHTML = '<span class="option-letter">' + letter + '</span>' + option;
+                optionItem.onclick = function() {
+                    selectOption(this, index, question.type);
+                };
+                optionsContainer.appendChild(optionItem);
+            });
+        }
+        // 选择题
+        else if ([1, 2].includes(question.type)) {
+            // 现在options字段是用竖线分隔的选项内容
+            if (question.options && typeof question.options === 'string') {
+                var options = question.options.split('|');
+                options.forEach((option, index) => {
+                    if (option.trim()) {
+                        var optionItem = document.createElement('div');
+                        optionItem.className = 'option-item';
+                        var letter = String.fromCharCode(65 + index);
+                        optionItem.innerHTML = '<span class="option-letter">' + letter + '</span>' + option.trim();
+                        optionItem.onclick = function() {
+                            selectOption(this, index, question.type);
+                        };
+                        optionsContainer.appendChild(optionItem);
+                    }
+                });
+            }
+        }
+        // 填空题和简答题
+        else {
+            // 显示答案输入框
+            var answerInput = document.createElement('textarea');
+            answerInput.id = 'user-answer';
+            answerInput.className = 'layui-textarea';
+            // 填空题和简答题使用不同的placeholder
+            if (question.type === 4) {
+                answerInput.placeholder = '请输入答案，以逗号分割';
+            } else {
+                answerInput.placeholder = '请输入答案';
+            }
+            answerInput.style.marginTop = '20px';
+            // 监听输入事件，保存用户答案
+            answerInput.addEventListener('input', function() {
+                userAnswers[currentQuestionIndex] = this.value;
+            });
+            optionsContainer.appendChild(answerInput);
+        }
+    }
+    
+    // 选择选项
+    function selectOption(optionElement, optionIndex, questionType) {
+        if (questionType === 1) {
+            // 单选题：只能选择一个选项
+            document.querySelectorAll('.option-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            optionElement.classList.add('selected');
+            // 保存用户答案
+            userAnswers[currentQuestionIndex] = optionIndex;
+        } else if (questionType === 2) {
+            // 多选题：可以选择多个选项
+            // 切换当前选项的选中状态
+            optionElement.classList.toggle('selected');
+            // 保存用户答案（数组形式）
+            var selectedOptions = [];
+            document.querySelectorAll('.option-item.selected').forEach(item => {
+                var index = Array.from(document.querySelectorAll('.option-item')).indexOf(item);
+                selectedOptions.push(index);
+            });
+            userAnswers[currentQuestionIndex] = selectedOptions;
+        } else if (questionType === 3) {
+            // 判断题：只能选择一个选项
+            document.querySelectorAll('.option-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            optionElement.classList.add('selected');
+            // 保存用户答案
+            userAnswers[currentQuestionIndex] = optionIndex;
+        }
+    }
+    
+    // 查看答案
+    function checkAnswer() {
+        if (currentQuestionIndex < questions.length) {
+            var question = questions[currentQuestionIndex];
+            var answerSection = document.getElementById('answer-section');
+            var correctAnswer = document.getElementById('correct-answer');
+            var analysis = document.getElementById('analysis');
+            
+            // 显示答案和解析
+            if (question.type === 3) {
+                // 判断题：根据选项获取答案内容
+                var options = question.options.split('|');
+                var answerLetter = question.answer;
+                var answerText = '';
+                
+                // 根据答案字母获取选项内容
+                if (answerLetter === 'A') {
+                    answerText = options[0] || '正确';
+                } else if (answerLetter === 'B') {
+                    answerText = options[1] || '错误';
+                } else {
+                    answerText = answerLetter;
+                }
+                correctAnswer.textContent = answerText;
+            } else if ([1, 2].includes(question.type)) {
+                // 选择题：根据答案字母获取选项内容，竖排显示
+                var correctAnswerLetters = question.answer;
+                var options = question.options.split('|');
+                var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+                var correctOptions = [];
+                
+                // 遍历答案字母，获取对应的选项内容
+                for (var i = 0; i < correctAnswerLetters.length; i++) {
+                    var letter = correctAnswerLetters[i];
+                    var index = letters.indexOf(letter);
+                    if (index >= 0 && index < options.length) {
+                        correctOptions.push(letter + '.' + options[index]);
+                    } else {
+                        correctOptions.push(letter);
+                    }
+                }
+                // 使用innerHTML显示HTML标签，实现竖排
+                correctAnswer.innerHTML = correctOptions.join('<br>');
+            } else {
+                // 填空题和简答题
+                // 填空题答案用空格分隔显示
+                var answerText = question.answer;
+                if (question.type === 4) {
+                    // 填空题：将竖线分隔改为空格分隔
+                    answerText = answerText.replace(/\|/g, ' ');
+                }
+                correctAnswer.textContent = answerText;
+            }
+            analysis.textContent = question.analysis || '暂无解析';
+            
+            answerSection.classList.add('show');
+            isChecked = true;
+        }
+    }
+    
+    // 下一题
+    function nextQuestion() {
+        if (currentQuestionIndex >= questions.length - 1) {
+            // 完成答题，显示结果
+            showResult();
+        } else {
+            showQuestion(currentQuestionIndex + 1);
+        }
+    }
+    
+    // 上一题
+    function prevQuestion() {
+        if (currentQuestionIndex > 0) {
+            showQuestion(currentQuestionIndex - 1);
+        }
+    }
+    
+    // 保存错题到数据库
+    function saveWrongQuestions(wrongQuestions) {
+        // 处理用户答案格式
+        wrongQuestions.forEach(wrongQuestion => {
+            var userAnswer = wrongQuestion.user_answer;
+            var questionId = wrongQuestion.question_id;
+            
+            // 查找对应的题目，获取题目类型
+            var question = questions.find(q => q.id == questionId);
+            var questionType = question ? question.type : 0;
+            
+            // 根据题目类型处理答案格式
+            if (questionType === 1 || questionType === 3) {
+                // 单选题和判断题：转换为字母格式，如 0 -> A, 1 -> B
+                if (typeof userAnswer === 'number') {
+                    userAnswer = String.fromCharCode(65 + userAnswer);
+                } else if (userAnswer === undefined) {
+                    userAnswer = '';
+                }
+            } else if (questionType === 2) {
+                // 多选题：转换为字母组合，如 [0, 2] -> AC
+                if (Array.isArray(userAnswer)) {
+                    // 转换为字母数组
+                    var answerLetters = userAnswer.map(index => String.fromCharCode(65 + index));
+                    // 排序并拼接成字符串
+                    userAnswer = answerLetters.sort().join('');
+                } else if (userAnswer === undefined) {
+                    userAnswer = '';
+                }
+            } else if (questionType === 4 || questionType === 5) {
+                // 填空题和简答题：处理空格
+                if (typeof userAnswer === 'string') {
+                    // 删除前后空格
+                    userAnswer = userAnswer.trim();
+                    // 中间连续空格替换为一个 |
+                    userAnswer = userAnswer.replace(/\s+/g, '|');
+                } else if (userAnswer === undefined) {
+                    userAnswer = '';
+                }
+            }
+            
+            // 更新用户答案
+            wrongQuestion.user_answer = userAnswer;
+        });
+        
+        // 发送错题信息到后端
+        fetch('api/wrong-questions.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(wrongQuestions)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.code !== 200 && data.code !== 201) {
+                console.error('保存错题失败：', data.msg);
+            }
+        })
+        .catch(error => {
+            console.error('保存错题失败：', error);
+        });
+    }
+    
+    // 显示结果
+    function showResult() {
+        // 计算得分和详细结果 - 只显示用户已经浏览过的题目
+        var correctCount = 0;
+        var wrongCount = 0;
+        var wrongQuestions = [];
+        var detailedResults = [];
+        
+        // 只遍历用户已经浏览过的题目（索引 <= currentQuestionIndex）
+        var viewedQuestions = questions.slice(0, currentQuestionIndex + 1);
+        
+        viewedQuestions.forEach((question, index) => {
+            var isCorrect = false;
+            var userAnswer = userAnswers[index];
+            var correctAnswerText = '';
+            var userAnswerText = '';
+            
+            // 获取选项内容
+            var options = [];
+            if (question.type === 3) {
+                options = question.options ? question.options.split('|') : ['正确', '错误'];
+            }
+            
+            // 根据题目类型判断答案是否正确
+            if (question.type === 3) {
+                // 判断题
+                // 答案是字母（A/B），用户答案是选项索引（0/1）
+                var correctLetter = question.answer;
+                var correctIndex = correctLetter === 'A' ? 0 : 1;
+                isCorrect = userAnswer === correctIndex;
+                
+                // 保存选项内容而非字母
+                correctAnswerText = options[correctIndex] || (correctIndex === 0 ? '正确' : '错误');
+                userAnswerText = userAnswer !== undefined ? (options[userAnswer] || (userAnswer === 0 ? '正确' : '错误')) : '';
+            } else if (question.type === 1) {
+                // 单选题
+                correctAnswerText = question.answer;
+                userAnswerText = userAnswer !== undefined ? String.fromCharCode(65 + userAnswer) : '';
+                isCorrect = userAnswerText === correctAnswerText;
+            } else if (question.type === 2) {
+                // 多选题
+                correctAnswerText = question.answer;
+                // 用户答案文本
+                if (Array.isArray(userAnswer)) {
+                    userAnswerText = userAnswer.map(index => String.fromCharCode(65 + index)).join('');
+                } else {
+                    userAnswerText = '';
+                }
+                // 比较答案是否相同（忽略顺序，转为数组排序后比较）
+                var sortedUserAnswer = userAnswerText.split('').sort().join('');
+                var sortedCorrectAnswer = correctAnswerText.split('').sort().join('');
+                isCorrect = sortedUserAnswer === sortedCorrectAnswer;
+            } else {
+                // 填空题和简答题
+                var normalizedUserAnswer = userAnswer || '';
+                var normalizedCorrectAnswer = question.answer;
+                
+                if (question.type === 4) {
+                    // 填空题：处理答案比较
+                    // 统一将所有答案转换为空格分隔的小写格式进行比较
+                    // 支持逗号、竖线、空格分隔的用户输入
+                    normalizedUserAnswer = normalizedUserAnswer.trim().toLowerCase().replace(/[,\|\s]+/g, ' ');
+                    normalizedCorrectAnswer = normalizedCorrectAnswer.trim().toLowerCase().replace(/[\|\s]+/g, ' ');
+                } else {
+                    // 简答题：直接比较
+                    normalizedUserAnswer = normalizedUserAnswer.trim().toLowerCase();
+                    normalizedCorrectAnswer = normalizedCorrectAnswer.trim().toLowerCase();
+                }
+                
+                isCorrect = typeof userAnswer === 'string' && 
+                           typeof question.answer === 'string' && 
+                           normalizedUserAnswer === normalizedCorrectAnswer;
+                
+                // 处理填空题答案显示
+                correctAnswerText = question.answer;
+                if (question.type === 4) {
+                    // 填空题：将竖线分隔改为空格分隔
+                    correctAnswerText = correctAnswerText.replace(/\|/g, ' ');
+                }
+                
+                userAnswerText = userAnswer || '';
+                // 填空题用户答案也用空格分隔显示
+                if (question.type === 4) {
+                    userAnswerText = userAnswerText.replace(/\|/g, ' ');
+                }
+            }
+            
+            if (isCorrect) {
+                correctCount++;
+            } else {
+                wrongCount++;
+                // 记录错题信息
+                wrongQuestions.push({
+                    user_id: 1, // 假设当前用户ID为1，实际应用中应从登录状态获取
+                    question_id: question.id,
+                    user_answer: userAnswer,
+                    created_at: new Date().toISOString().slice(0, 19).replace('T', ' ')
+                });
+            }
+            
+            // 处理未填写答案的情况
+            var displayUserAnswerText = userAnswerText;
+            if ((question.type === 1 || question.type === 3) && userAnswer === undefined) {
+                // 单选题、判断题：未选择答案
+                displayUserAnswerText = '<span style="color: #ff5722;">未填写</span>';
+            } else if (question.type === 2 && (!userAnswer || userAnswer.length === 0)) {
+                // 多选题：未选择答案
+                displayUserAnswerText = '<span style="color: #ff5722;">未填写</span>';
+            } else if ((question.type === 4 || question.type === 5) && (!userAnswer || userAnswer.trim() === '')) {
+                // 填空题、简答题：未填写答案
+                displayUserAnswerText = '<span style="color: #ff5722;">未填写</span>';
+            } else if (question.type === 4) {
+                // 填空题：用户输入的是逗号分隔，显示为空格分隔
+                displayUserAnswerText = displayUserAnswerText.replace(/[,\|]+/g, ' ');
+            }
+            
+            // 保存详细结果
+            detailedResults.push({
+                question: question,
+                userAnswer: userAnswer,
+                userAnswerText: displayUserAnswerText,
+                correctAnswerText: correctAnswerText,
+                isCorrect: isCorrect
+            });
+        });
+        
+        var totalViewedQuestions = detailedResults.length;
+        var score = totalViewedQuestions > 0 ? Math.round((correctCount / totalViewedQuestions) * 100) : 0;
+        
+        // 保存错题到数据库
+        if (wrongQuestions.length > 0) {
+            saveWrongQuestions(wrongQuestions);
+        }
+        
+        // 显示结果
+        document.getElementById('answer-card').style.display = 'none';
+        document.getElementById('result-card').style.display = 'block';
+        
+        // 生成结果HTML
+        var resultHTML = generateResultHTML(correctCount, wrongCount, detailedResults, totalViewedQuestions);
+        document.getElementById('result-card').innerHTML = resultHTML;
+        
+        // 重新绑定按钮事件
+        document.getElementById('restart-btn').onclick = restart;
+        document.getElementById('back-home-btn').onclick = function() {
+            NavAPI.goTo('modules/all-answer.html');
+        };
+    }
+    
+    // 生成结果HTML
+    function generateResultHTML(correctCount, wrongCount, detailedResults, totalViewedQuestions) {
+        // 使用传入的totalViewedQuestions参数计算分数
+        var score = totalViewedQuestions > 0 ? Math.round((correctCount / totalViewedQuestions) * 100) : 0;
+        
+        // 结果标题和图标
+        var resultIcon = '<i class="layui-icon layui-icon-face-smile" style="color: #23915f;"></i>';
+        var resultTitle = '恭喜你，考试通过！';
+        var resultDesc = '你的表现非常优秀，继续保持！';
+        
+        if (score < 60) {
+            resultIcon = '<i class="layui-icon layui-icon-face-cry" style="color: #ff5722;"></i>';
+            resultTitle = '很遗憾，考试未通过';
+            resultDesc = '别灰心，继续努力，下次一定能通过！';
+        } else if (score < 90) {
+            resultIcon = '<i class="layui-icon layui-icon-face-smile"></i>';
+            resultTitle = '恭喜你，考试通过！';
+            resultDesc = '继续努力，争取更好的成绩！';
+        }
+        
+        // 生成详细结果列表 - 只显示用户已经浏览过的题目
+        var resultsList = '';
+        detailedResults.forEach((result, index) => {
+            var question = result.question;
+            var userAnswer = result.userAnswer;
+            var statusClass = result.isCorrect ? 'correct' : 'wrong';
+            var statusText = result.isCorrect ? '正确' : '错误';
+            var statusColor = result.isCorrect ? '#23915f' : '#ff5722';
+            
+            // 生成选项列表
+            var optionsList = '';
+            if (question.type === 3) {
+                // 判断题
+                var options = question.options ? question.options.split('|') : ['正确', '错误'];
+                options.forEach((option, optIndex) => {
+                    var letter = String.fromCharCode(65 + optIndex);
+                    var color = '';
+                    
+                    // 判断是否为正确答案
+                    var isCorrectOption = question.answer === letter;
+                    // 判断是否为用户答案
+                    var isUserOption = userAnswer === optIndex;
+                    
+                    if (isCorrectOption) {
+                        color = '#23915f'; // 正确答案标绿
+                    } else if (isUserOption && !result.isCorrect) {
+                        color = '#ff5722'; // 用户错误答案标红
+                    }
+                    
+                    if (color) {
+                        optionsList += '<span style="color: ' + color + ';">' + letter + '：' + option + '</span><br>';
+                    } else {
+                        optionsList += letter + '：' + option + '<br>';
+                    }
+                });
+            } else if ([1, 2].includes(question.type)) {
+                // 选择题
+                var options = question.options.split('|');
+                var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+                
+                options.forEach((option, optIndex) => {
+                    if (option.trim()) {
+                        var letter = letters[optIndex];
+                        var color = '';
+                        
+                        // 判断是否为正确答案
+                        var isCorrectOption = question.answer.includes(letter);
+                        // 判断是否为用户答案
+                        var isUserOption = false;
+                        if (Array.isArray(userAnswer)) {
+                            // 多选题
+                            isUserOption = userAnswer.includes(optIndex);
+                        } else {
+                            // 单选题
+                            isUserOption = userAnswer === optIndex;
+                        }
+                        
+                        if (isCorrectOption) {
+                            color = '#23915f'; // 正确答案标绿
+                        } else if (isUserOption && !result.isCorrect) {
+                            color = '#ff5722'; // 用户错误答案标红
+                        }
+                        
+                        if (color) {
+                            optionsList += '<span style="color: ' + color + ';">' + letter + '：' + option.trim() + '</span><br>';
+                        } else {
+                            optionsList += letter + '：' + option.trim() + '<br>';
+                        }
+                    }
+                });
+            }
+            
+            resultsList += '<div class="layui-card" style="margin-bottom: 10px;">' +
+                '<div class="layui-card-header" style="display: flex; justify-content: space-between; align-items: center;">' +
+                '<span>第' + (index + 1) + '题</span>' +
+                '<span style="color: ' + statusColor + '; font-weight: bold;">' + statusText + '</span>' +
+                '</div>' +
+                '<div class="layui-card-body">' +
+                '<div style="margin-bottom: 10px;">' +
+                '<strong>题目：</strong>' + question.content +
+                '</div>' +
+                (optionsList ? '<div style="margin-bottom: 10px; text-align: left;">' +
+                '<strong>选项：</strong><br><div style="margin-left: 20px;">' + optionsList + '</div>' +
+                '</div>' : '') +
+                '<div style="margin-bottom: 10px;">' +
+                '<strong>你的答案：</strong>' + (result.isCorrect ? result.userAnswerText : '<span style="color: #ff5722;">' + result.userAnswerText + '</span>') +
+                '</div>' +
+                '<div style="margin-bottom: 10px;">' +
+                '<strong>正确答案：</strong><span style="color: #23915f;"> ' + result.correctAnswerText + '</span>' +
+                '</div>' +
+                '<div style="margin-bottom: 10px;">' +
+                '<strong>解析：</strong>' + (question.analysis || '暂无解析') +
+                '</div>' +
+                '</div>' +
+                '</div>';
+        });
+        
+        // 完整的结果HTML
+        var html = '<div class="result-section">' +
+            '<div class="result-icon">' + resultIcon + '</div>' +
+            '<div class="result-title">' + resultTitle + '</div>' +
+            '<div class="result-score">' + score + '分</div>' +
+            '<div class="result-desc">' + resultDesc + '</div>' +
+            '<div class="layui-card" style="margin-bottom: 20px;">' +
+            '<div class="layui-card-header">答题统计</div>' +
+            '<div class="layui-card-body" style="display: flex; justify-content: space-around;">' +
+            '<div style="text-align: center;">' +
+            '<div style="font-size: 24px; font-weight: bold; color: #23915f;">' + correctCount + '</div>' +
+            '<div style="color: #666;">答对题数</div>' +
+            '</div>' +
+            '<div style="text-align: center;">' +
+            '<div style="font-size: 24px; font-weight: bold; color: #ff5722;">' + wrongCount + '</div>' +
+            '<div style="color: #666;">答错题数</div>' +
+            '</div>' +
+            '<div style="text-align: center;">' +
+            '<div style="font-size: 24px; font-weight: bold; color: #333;">' + totalViewedQuestions + '</div>' +
+            '<div style="color: #666;">已答题数</div>' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="btn-group" style="justify-content: center; margin-bottom: 30px;">' +
+            '<button class="layui-btn layui-btn-normal" id="restart-btn">重新答题</button>' +
+            '<button class="layui-btn layui-btn-primary" id="back-home-btn">返回首页</button>' +
+            '</div>' +
+            '<div class="layui-card">' +
+            '<div class="layui-card-header">详细结果</div>' +
+            '<div class="layui-card-body">' +
+            resultsList +
+            '</div>' +
+            '</div>' +
+            '</div>';
+        
+        return html;
+    }
+    
+    // 重新答题
+    function restart() {
+        document.getElementById('result-card').style.display = 'none';
+        document.getElementById('answer-card').style.display = 'block';
+        currentQuestionIndex = 0;
+        userAnswers = [];
+        initAnswer();
+    }
+    
+    // 结束答题
+    function endAnswer() {
+        layer.confirm('确定要结束答题吗？', {
+            btn: ['确定', '取消']
+        }, function(index) {
+            // 关闭确认框
+            layer.close(index);
+            // 显示结果
+            showResult();
+        });
+    }
+    
+    // 简化的初始化函数，优先显示答题设置弹框
+    function initializeAnswer() {
+        console.log('=== Initializing Answer Module ===');
+        
+        // 检查layui是否可用
+        if (typeof layui === 'undefined') {
+            console.error('❌ Layui is not available! Cannot initialize answer function.');
+            return;
+        }
+        
+        console.log('✅ Layui is available. Loading layer module first for settings modal...');
+        
+        // 优先加载layer模块，立即显示答题设置框
+        layui.use('layer', function() {
+            console.log('✅ Layer module loaded, showing settings modal immediately...');
+            
+            // 不需要等待DOM完全加载，直接显示答题设置框
+            initAnswer();
+            
+            // 然后再加载form模块并绑定事件
+            console.log('🔄 Loading form module and binding events...');
+            layui.use('form', function() {
+                console.log('✅ Form module loaded');
+                
+                // 绑定按钮事件
+                setTimeout(function() {
+                    console.log('🔗 Binding button events...');
+                    var checkBtn = document.getElementById('check-btn');
+                    var nextBtn = document.getElementById('next-btn');
+                    var prevBtn = document.getElementById('prev-btn');
+                    var endBtn = document.getElementById('end-btn');
+                    
+                    if (checkBtn) {
+                        checkBtn.onclick = checkAnswer;
+                        console.log('✅ Check button event bound');
+                    }
+                    if (nextBtn) {
+                        nextBtn.onclick = nextQuestion;
+                        console.log('✅ Next button event bound');
+                    }
+                    if (prevBtn) {
+                        prevBtn.onclick = prevQuestion;
+                        console.log('✅ Prev button event bound');
+                    }
+                    if (endBtn) {
+                        endBtn.onclick = endAnswer;
+                        console.log('✅ End button event bound');
+                    }
+                }, 100);
+            });
+        });
+    }
+    
+    // 直接调用初始化，只执行一次
+    console.log('📢 Starting answer module initialization...');
+    initializeAnswer();
+    
+    // 移除重复的初始化调用，避免弹窗弹出两次
+    // 只执行一次初始化，确保弹窗只显示一次
+</script>

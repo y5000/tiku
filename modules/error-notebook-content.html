@@ -1,0 +1,523 @@
+<!-- 错题本页面内容 -->
+<style>
+    .question-content {
+        font-size: 16px;
+        line-height: 1.6;
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-left: 4px solid #23915f;
+        border-radius: 4px;
+    }
+    .option-item {
+        margin-bottom: 10px;
+        padding: 8px 15px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+    }
+    .option-letter {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        line-height: 20px;
+        text-align: center;
+        background-color: #23915f;
+        color: #fff;
+        border-radius: 50%;
+        margin-right: 10px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    .wrong-answer {
+        background-color: #fff3f3;
+        border-left: 4px solid #ff5722;
+    }
+    .correct-answer {
+        background-color: #f0fff4;
+        border-left: 4px solid #23915f;
+    }
+    .answer-section {
+        margin-top: 15px;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+    }
+    .analysis-title {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #23915f;
+    }
+    .btn-group {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+    }
+</style>
+
+<div class="card">
+    <div class="card-title">
+        <i class="layui-icon layui-icon-note"></i>
+        错题本
+        <div class="layui-btn-group" style="float: right;">
+            <button class="layui-btn layui-btn-success layui-btn-sm" id="wrong-question-type" data-type="0">错题</button>
+            <button class="layui-btn layui-btn-primary layui-btn-sm" id="favorite-type" data-type="1">收藏</button>
+        </div>
+    </div>
+    <div class="card-content">
+        <!-- 错题列表 -->
+        <div id="wrong-questions-list"></div>
+        
+        <!-- 分页 -->
+        <div id="wrong-questions-page" style="text-align: center; margin-top: 20px;"></div>
+    </div>
+</div>
+
+<script>
+    // 设置导航标题为"错题/收藏"
+    if (window.HeaderAPI) {
+        HeaderAPI.setNavTitle('错题/收藏');
+    }
+    
+    // 模块作用域变量，用于防止多次初始化
+    var isInitialized = false;
+    
+    // 错题本相关变量
+    var wrongQuestions = [];
+    var currentPage = 1;
+    var pageSize = 10;
+    var totalQuestions = 0;
+    var currentType = 0; // 0: 错题, 1: 收藏
+    
+    // 初始化页面
+    function initErrorNotebook() {
+        // 防止重复初始化
+        if (isInitialized) {
+            return;
+        }
+        
+        // 设置初始化标志
+        isInitialized = true;
+        
+        layui.use(['layer', 'form', 'laypage'], function() {
+            loadWrongQuestions();
+            
+            // 绑定类型切换事件，确保元素存在后再设置
+            var wrongQuestionTypeBtn = document.getElementById('wrong-question-type');
+            if (wrongQuestionTypeBtn) {
+                wrongQuestionTypeBtn.onclick = function() {
+                    currentType = 0;
+                    toggleTypeButtons(0);
+                    loadWrongQuestions();
+                };
+            }
+            
+            var favoriteTypeBtn = document.getElementById('favorite-type');
+            if (favoriteTypeBtn) {
+                favoriteTypeBtn.onclick = function() {
+                    currentType = 1;
+                    toggleTypeButtons(1);
+                    loadWrongQuestions();
+                };
+            }
+        });
+    }
+    
+    // 切换类型按钮状态
+    function toggleTypeButtons(type) {
+        var wrongBtn = document.getElementById('wrong-question-type');
+        var favoriteBtn = document.getElementById('favorite-type');
+        
+        if (wrongBtn && favoriteBtn) {
+            if (type === 0) {
+                // 错题按钮激活，显示绿色
+                wrongBtn.className = 'layui-btn layui-btn-success layui-btn-sm';
+                // 收藏按钮非激活，显示灰色
+                favoriteBtn.className = 'layui-btn layui-btn-primary layui-btn-sm';
+            } else {
+                // 错题按钮非激活，显示灰色
+                wrongBtn.className = 'layui-btn layui-btn-primary layui-btn-sm';
+                // 收藏按钮激活，显示绿色
+                favoriteBtn.className = 'layui-btn layui-btn-success layui-btn-sm';
+            }
+        }
+    }
+    
+    // 加载错题列表
+    function loadWrongQuestions() {
+        // 显示加载状态
+        var loading = layer.load(2, {
+            shade: [0.3, '#fff']
+        });
+        
+        // 发送请求获取错题列表
+        fetch('api/wrong-questions.php?user_id=1&type=' + currentType + '&page=' + currentPage + '&limit=' + pageSize)
+            .then(response => response.json())
+            .then(data => {
+                layer.close(loading);
+                
+                if (data.code === 200) {
+                    wrongQuestions = data.data;
+                    totalQuestions = wrongQuestions.length; // 设置总记录数
+                    renderWrongQuestions();
+                    renderPagination();
+                } else {
+                    layer.msg(data.msg || '获取错题失败', {icon: 5});
+                }
+            })
+            .catch(error => {
+                layer.close(loading);
+                layer.msg('网络错误，获取错题失败', {icon: 5});
+            });
+    }
+    
+    // 渲染错题列表
+    function renderWrongQuestions() {
+        var container = document.getElementById('wrong-questions-list');
+        
+        if (wrongQuestions.length === 0) {
+            container.innerHTML = '<div style="text-align: center; padding: 50px 0; color: #666;">暂无错题记录</div>';
+            return;
+        }
+        
+        var html = '';
+        wrongQuestions.forEach(function(item) {
+            if (item.question) {
+                html += generateWrongQuestionHTML(item);
+            }
+        });
+        
+        container.innerHTML = html;
+        
+        // 重新绑定按钮事件
+        bindWrongQuestionEvents();
+    }
+    
+    // 生成错题HTML
+    function generateWrongQuestionHTML(item) {
+        var question = item.question;
+        var options = [];
+        var answerHTML = '';
+        
+        // 解析选项
+        if (question.options) {
+            options = question.options.split('|');
+        }
+        
+        // 生成选项HTML
+        var optionsHTML = '';
+        if (options.length > 0) {
+            for (var i = 0; i < options.length; i += 3) {
+                var letter = options[i];
+                var content = options[i + 1];
+                var isCorrect = options[i + 2] == 1;
+                var isUserAnswer = item.answer.includes(letter);
+                
+                var optionClass = '';
+                if (isCorrect) {
+                    optionClass = 'correct-answer';
+                } else if (isUserAnswer) {
+                    optionClass = 'wrong-answer';
+                }
+                
+                optionsHTML += '<div class="option-item ' + optionClass + '">' +
+                    '<span class="option-letter">' + letter + '</span>' +
+                    '<span>' + content + '</span>' +
+                '</div>';
+            }
+        }
+        
+        // 生成答案HTML
+        if (question.type === 3) {
+            // 判断题
+            answerHTML = question.answer === 'A' ? '正确' : '错误';
+        } else if (question.type === 4) {
+            // 填空题
+            answerHTML = question.answer.replace(/\|/g, ' ');
+        } else {
+            // 选择题
+            answerHTML = question.answer;
+        }
+        
+        // 生成选项列表，和结束答题后的详细结果逻辑一致
+        var detailedOptionsList = '';
+        if (question.type === 3) {
+            // 判断题
+            var options = question.options ? question.options.split('|') : ['正确', '错误'];
+            options.forEach((option, optIndex) => {
+                var letter = String.fromCharCode(65 + optIndex);
+                var color = '';
+                
+                // 判断是否为正确答案
+                var isCorrectOption = question.answer === letter;
+                // 判断是否为用户答案
+                var isUserOption = item.answer === letter;
+                
+                if (isCorrectOption) {
+                    color = '#23915f'; // 正确答案标绿
+                } else if (isUserOption && item.answer !== question.answer) {
+                    color = '#ff5722'; // 用户错误答案标红
+                }
+                
+                if (color) {
+                    detailedOptionsList += '<span style="color: ' + color + ';">' + letter + '：' + option + '</span><br>';
+                } else {
+                    detailedOptionsList += letter + '：' + option + '<br>';
+                }
+            });
+        } else if ([1, 2].includes(question.type)) {
+            // 选择题
+            var options = question.options ? question.options.split('|') : [];
+            var letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+            
+            options.forEach((option, optIndex) => {
+                if (option.trim()) {
+                    var letter = letters[optIndex];
+                    var color = '';
+                    
+                    // 判断是否为正确答案
+                    var isCorrectOption = question.answer.includes(letter);
+                    // 判断是否为用户答案
+                    var isUserOption = item.answer.includes(letter);
+                    
+                    if (isCorrectOption) {
+                        color = '#23915f'; // 正确答案标绿
+                    } else if (isUserOption && item.answer !== question.answer) {
+                        color = '#ff5722'; // 用户错误答案标红
+                    }
+                    
+                    if (color) {
+                        detailedOptionsList += '<span style="color: ' + color + ';">' + letter + '：' + option.trim() + '</span><br>';
+                    } else {
+                        detailedOptionsList += letter + '：' + option.trim() + '<br>';
+                    }
+                }
+            });
+        }
+        
+        return '<div class="layui-card" style="margin-bottom: 20px;">' +
+            '<div class="layui-card-header" style="display: flex; justify-content: space-between; align-items: center;">' +
+                '<span>第' + (wrongQuestions.indexOf(item) + 1) + '题 - ' + item.category_name + '</span>' +
+                '<span style="color: #666;">' + item.created_at + '</span>' +
+            '</div>' +
+            '<div class="layui-card-body">' +
+                '<div class="question-content">' + question.content + '</div>' +
+                
+                '<div class="answer-section">' +
+                    (detailedOptionsList ? '<div style="margin-bottom: 10px;">' +
+                    '<div class="analysis-title">选项：</div>' +
+                    '<div style="margin-left: 20px; margin-top: 5px;">' + detailedOptionsList + '</div>' +
+                    '</div>' : '') +
+                    
+                    '<div class="analysis-title" style="margin-bottom: 10px;">你的答案：<span style="color: #ff5722;">' + item.answer + '</span></div>' +
+                    
+                    '<div class="analysis-title" style="margin-bottom: 10px;">正确答案：<span style="color: #23915f;">' + answerHTML + '</span></div>' +
+                    
+                    '<div class="analysis-title">解析：</div>' +
+                    '<div style="margin-bottom: 10px;">' + (question.analysis || '暂无解析') + '</div>' +
+                '</div>' +
+                
+                '<div class="btn-group">' +
+                    '<button class="layui-btn ' + (item.reviewed === 1 ? 'layui-btn-success' : 'layui-btn-primary') + ' layui-btn-sm" onclick="toggleReviewStatus(' + item.id + ')">' +
+                        '<i class="layui-icon layui-icon-ok"></i> ' + (item.reviewed === 1 ? '取消复习' : '标记复习') + '' +
+                    '</button>' +
+                    '<button class="layui-btn layui-btn-normal layui-btn-sm" onclick="toggleType(' + item.id + ')">' +
+                        '<i class="layui-icon layui-icon-add"></i> 加入' + (item.type === 0 ? '收藏' : '错题') + '' +
+                    '</button>' +
+                    '<button class="layui-btn layui-btn-danger layui-btn-sm" onclick="deleteWrongQuestion(' + item.id + ')">' +
+                        '<i class="layui-icon layui-icon-delete"></i> 删除' +
+                    '</button>' +
+                '</div>' +
+            '</div>' +
+        '</div>';
+    }
+    
+    // 渲染分页
+    function renderPagination() {
+        layui.use('laypage', function() {
+            var laypage = layui.laypage;
+            
+            laypage.render({
+                elem: 'wrong-questions-page',
+                count: totalQuestions,
+                curr: currentPage,
+                limit: pageSize,
+                layout: ['count', 'prev', 'page', 'next', 'limit', 'refresh', 'skip'],
+                limits: [10, 20, 30, 50],
+                jump: function(obj, first) {
+                    if (!first) {
+                        currentPage = obj.curr;
+                        pageSize = obj.limit;
+                        loadWrongQuestions();
+                    }
+                }
+            });
+        });
+    }
+    
+    // 绑定错题事件
+    function bindWrongQuestionEvents() {
+        // 这里可以绑定更多事件
+    }
+    
+    // 切换复习状态
+    function toggleReviewStatus(id) {
+        // 查找当前错题
+        var item = wrongQuestions.find(q => q.id === id);
+        if (!item) return;
+        
+        // 确定新的复习状态
+        var newReviewedStatus = item.reviewed === 1 ? 0 : 1;
+        var actionText = newReviewedStatus === 1 ? '标记' : '取消标记';
+        var successText = newReviewedStatus === 1 ? '标记成功' : '取消标记成功';
+        
+        // 先更新UI，提供即时反馈
+        var btnElement = document.querySelector('[onclick="toggleReviewStatus(' + id + ')"]');
+        if (btnElement) {
+            btnElement.className = 'layui-btn ' + (newReviewedStatus === 1 ? 'layui-btn-success' : 'layui-btn-primary') + ' layui-btn-sm';
+            btnElement.innerHTML = '<i class="layui-icon layui-icon-ok"></i> ' + (newReviewedStatus === 1 ? '取消复习' : '标记复习') + '';
+        }
+        
+        fetch('api/wrong-questions.php', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                id: id,
+                reviewed: newReviewedStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.code === 200) {
+                layer.msg(successText, {icon: 6});
+                
+                // 更新本地数据
+                for (var i = 0; i < wrongQuestions.length; i++) {
+                    if (wrongQuestions[i].id === id) {
+                        wrongQuestions[i].reviewed = newReviewedStatus;
+                        break;
+                    }
+                }
+            } else {
+                // 如果更新失败，恢复按钮样式
+                if (btnElement) {
+                    btnElement.className = 'layui-btn ' + (item.reviewed === 1 ? 'layui-btn-success' : 'layui-btn-primary') + ' layui-btn-sm';
+                    btnElement.innerHTML = '<i class="layui-icon layui-icon-ok"></i> ' + (item.reviewed === 1 ? '取消复习' : '标记复习') + '';
+                }
+                layer.msg(data.msg || actionText + '失败', {icon: 5});
+            }
+        })
+        .catch(error => {
+            // 如果网络错误，恢复按钮样式
+            if (btnElement) {
+                btnElement.className = 'layui-btn ' + (item.reviewed === 1 ? 'layui-btn-success' : 'layui-btn-primary') + ' layui-btn-sm';
+                btnElement.innerHTML = '<i class="layui-icon layui-icon-ok"></i> ' + (item.reviewed === 1 ? '取消复习' : '标记复习') + '';
+            }
+            layer.msg('网络错误，' + actionText + '失败', {icon: 5});
+        });
+    }
+    
+    // 切换类型（错题/收藏）
+    function toggleType(id) {
+        var item = wrongQuestions.find(q => q.id === id);
+        if (item) {
+            var newType = item.type === 0 ? 1 : 0;
+            
+            fetch('api/wrong-questions.php', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: id,
+                    type: newType
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 200) {
+                    layer.msg('切换成功', {icon: 6});
+                    loadWrongQuestions();
+                } else {
+                    layer.msg(data.msg || '切换失败', {icon: 5});
+                }
+            })
+            .catch(error => {
+                layer.msg('网络错误，切换失败', {icon: 5});
+            });
+        }
+    }
+    
+    // 删除错题
+    function deleteWrongQuestion(id) {
+        layer.confirm('确定要删除这道错题吗？', {
+            icon: 3,
+            title: '提示'
+        }, function(index) {
+            layer.close(index);
+            
+            fetch('api/wrong-questions.php?id=' + id, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.code === 200) {
+                    layer.msg('删除成功', {icon: 6});
+                    loadWrongQuestions();
+                } else {
+                    layer.msg(data.msg || '删除失败', {icon: 5});
+                }
+            })
+            .catch(error => {
+                layer.msg('网络错误，删除失败', {icon: 5});
+            });
+        });
+    }
+    
+    // 切换类型按钮状态
+    function toggleTypeButtons(type) {
+        var wrongBtn = document.getElementById('wrong-question-type');
+        var favoriteBtn = document.getElementById('favorite-type');
+        
+        if (type === 0) {
+            // 错题按钮激活，显示绿色
+            wrongBtn.className = 'layui-btn layui-btn-success layui-btn-sm';
+            // 收藏按钮非激活，显示灰色
+            favoriteBtn.className = 'layui-btn layui-btn-primary layui-btn-sm';
+        } else {
+            // 错题按钮非激活，显示灰色
+            wrongBtn.className = 'layui-btn layui-btn-primary layui-btn-sm';
+            // 收藏按钮激活，显示绿色
+            favoriteBtn.className = 'layui-btn layui-btn-success layui-btn-sm';
+        }
+    }
+    
+    // 初始化函数的引用，用于移除事件监听器
+    var initListener = function(event) {
+        // 只在当前模块加载时初始化
+        if (event.detail.moduleUrl === 'modules/error-notebook-content.html') {
+            // 直接调用初始化函数，不再重置isInitialized标志
+            // initErrorNotebook函数内部有isInitialized检查，确保不会重复初始化
+            setTimeout(function() {
+                initErrorNotebook();
+            }, 50);
+        }
+    };
+    
+    // 移除可能存在的旧监听器，避免重复添加
+    document.removeEventListener('moduleLoaded', initListener);
+    
+    // 添加moduleLoaded事件监听器，确保页面在动态加载时能正确初始化
+    document.addEventListener('moduleLoaded', initListener);
+    
+    // 只在直接访问页面时初始化，模块加载时由moduleLoaded事件处理
+    // 检查当前页面是否是通过模块加载的
+    var isModuleLoaded = window.location.hash && window.location.hash.includes('modules/');
+    if (!isModuleLoaded) {
+        // 延迟初始化，确保layui和DOM完全加载
+        setTimeout(function() {
+            initErrorNotebook();
+        }, 50);
+    }
+</script>

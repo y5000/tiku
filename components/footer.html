@@ -1,0 +1,127 @@
+<!-- 底部导航组件 -->
+<div class="footer-nav">
+    <div class="nav-item" id="navHome" data-nav="home" data-href="modules/home-blank.html">
+        <i class="layui-icon layui-icon-home"></i>
+        <div class="nav-text">首页</div>
+    </div>
+    <div class="nav-item" id="navAnswer" data-nav="answer" data-href="modules/all-answer.html">
+        <i class="layui-icon layui-icon-read"></i>
+        <div class="nav-text">每日刷题</div>
+    </div>
+    <div class="nav-item" id="navWrong" data-nav="error-notebook" data-href="modules/error-notebook-content.html">
+        <i class="layui-icon layui-icon-note"></i>
+        <div class="nav-text">错题/收藏</div>
+    </div>
+    <div class="nav-item" id="navRecord" data-nav="record" data-href="modules/exam-records.html">
+        <i class="layui-icon layui-icon-form"></i>
+        <div class="nav-text">答题记录</div>
+    </div>
+    <!-- 我的菜单 -->
+    <div class="nav-item" id="navMy" data-nav="my" data-href="modules/my-content.html">
+        <i class="layui-icon layui-icon-user"></i>
+        <div class="nav-text">我的</div>
+    </div>
+</div>
+
+<style>
+    /* 底部导航栏样式 */
+    .footer-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background-color: #fff;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        z-index: 999;
+    }
+    
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 20%;
+        height: 100%;
+        cursor: pointer;
+        color: #999;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-item.active {
+        color: #23915f;
+    }
+    
+    .nav-item i {
+        font-size: 24px;
+        margin-bottom: 3px;
+    }
+    
+    .nav-text {
+        font-size: 12px;
+    }
+    
+    .nav-item:hover {
+        color: #23915f;
+    }
+</style>
+
+<script>
+    // 底部导航API
+    window.FooterAPI = {
+        // 设置激活的导航项
+        setActiveNav: function(navId) {
+            // 移除所有激活状态
+            document.querySelectorAll('.nav-item').forEach(function(item) {
+                item.classList.remove('active');
+            });
+            // 设置当前激活项
+            var navItem = document.getElementById(navId);
+            if (navItem) {
+                navItem.classList.add('active');
+            }
+        },
+        
+        // 隐藏指定导航项
+        hideNavItem: function(navId) {
+            var navItem = document.getElementById(navId);
+            if (navItem) {
+                navItem.style.display = 'none';
+            }
+        },
+        
+        // 显示指定导航项
+        showNavItem: function(navId) {
+            var navItem = document.getElementById(navId);
+            if (navItem) {
+                navItem.style.display = 'flex';
+            }
+        },
+        
+        // 设置导航项点击事件
+        setNavClick: function(navId, callback) {
+            var navItem = document.getElementById(navId);
+            if (navItem) {
+                navItem.onclick = callback;
+            }
+        },
+        
+        // 设置导航项链接
+        setNavHref: function(navId, href) {
+            var navItem = document.getElementById(navId);
+            if (navItem) {
+                navItem.onclick = function() {
+                    // 使用NavAPI进行页面内跳转，而不是直接刷新页面
+                    if (window.NavAPI && href !== '#') {
+                        NavAPI.goTo(href);
+                    } else {
+                        window.location.href = href;
+                    }
+                };
+            }
+        }
+    };
+</script>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>题库系统 - 注册</title>
+    <!-- 引入layui CSS -->
+    <link rel="stylesheet" href="https://lib.baomitu.com/layui/2.8.18/css/layui.css">
+    <style>
+        body {
+            background-color: #f2f2f2;
+        }
+        .register-container {
+            max-width: 400px;
+            margin: 80px auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .register-title {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        .layui-form-item {
+            margin-bottom: 25px;
+        }
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <h1 class="register-title">题库系统</h1>
+        <form class="layui-form" action="" method="post">
+            <div class="layui-form-item">
+                <label class="layui-form-label">用户名</label>
+                <div class="layui-input-block">
+                    <input type="text" name="username" required lay-verify="required" placeholder="请输入用户名" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">邮箱</label>
+                <div class="layui-input-block">
+                    <input type="email" name="email" required lay-verify="required|email" placeholder="请输入邮箱" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">密码</label>
+                <div class="layui-input-block">
+                    <input type="password" name="password" required lay-verify="required" placeholder="请输入密码" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">确认密码</label>
+                <div class="layui-input-block">
+                    <input type="password" name="confirm_password" required lay-verify="required|confirmPassword" placeholder="请再次输入密码" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button class="layui-btn" lay-submit lay-filter="register">注册</button>
+                </div>
+            </div>
+        </form>
+        <div class="login-link">
+            <a href="login.html">已有账号？立即登录</a>
+        </div>
+    </div>
+
+    <!-- 引入layui JS -->
+    <script src="https://lib.baomitu.com/layui/2.8.18/layui.js"></script>
+    <script>
+        layui.use(['form', 'layer'], function(){
+            var form = layui.form;
+            var layer = layui.layer;
+
+            // 自定义验证规则
+            form.verify({
+                confirmPassword: function(value, item){
+                    // 验证确认密码是否与密码一致
+                    var password = layui.$('input[name=password]').val();
+                    if(value !== password){
+                        return '两次输入的密码不一致';
+                    }
+                }
+            });
+
+            // 注册表单提交
+            form.on('submit(register)', function(data){
+                // 发送AJAX请求
+                layui.$.ajax({
+                    url: 'api/register.php',
+                    type: 'POST',
+                    dataType: 'json',
+                    data: data.field,
+                    success: function(res){
+                        if(res.code === 0){
+                            layer.msg('注册成功', {icon: 1, time: 1500}, function(){
+                                window.location.href = 'login.html';
+                            });
+                        } else {
+                            layer.msg(res.msg, {icon: 5});
+                        }
+                    },
+                    error: function(){
+                        layer.msg('网络错误，请稍后重试', {icon: 5});
+                    }
+                });
+                return false;
+            });
+        });
+    </script>
+</body>
+</html>

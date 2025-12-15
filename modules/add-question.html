@@ -1,0 +1,162 @@
+<!-- 添加题目 -->
+<div class="card" id="add-question">
+    <div class="card-title">
+        <span>添加题目</span>
+        <button class="layui-btn layui-btn-sm layui-btn-primary" style="float: right;" id="back-to-questions">
+            <i class="layui-icon layui-icon-left"></i> 返回列表
+        </button>
+    </div>
+    
+    <!-- 添加题目表单 -->
+    <form class="layui-form layui-form-pane" id="question-form" lay-filter="question-form">
+        <input type="hidden" name="id">
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">题目类型</label>
+            <div class="layui-input-block">
+                <select name="type" lay-filter="question-type" lay-verify="requiredType">
+                    <option value="1">单选</option>
+                    <option value="2">多选</option>
+                    <option value="3">判断</option>
+                    <option value="4">填空</option>
+                    <option value="5">简答</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">所属题库</label>
+            <div class="layui-input-block">
+                <select name="bank_id" lay-filter="bank_id">
+                    <option value="0">默认题库</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">难度</label>
+            <div class="layui-input-block">
+                <select name="difficulty" lay-filter="difficulty">
+                    <option value="1">简单</option>
+                    <option value="2" selected>中等</option>
+                    <option value="3">困难</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">题目内容</label>
+            <div class="layui-input-block">
+                <textarea name="content" placeholder="请输入题目内容" class="layui-textarea" lay-verify="requiredContent" style="height: 100px;"></textarea>
+            </div>
+        </div>
+        
+        <!-- 选择题选项 -->
+        <div class="choice-options" style="display: none;">
+            <div class="layui-form-item">
+                <label class="layui-form-label">选项</label>
+                <div class="layui-input-block">
+                    <!-- 单条输入区域 -->
+                    <div class="single-input-section">
+                        <div class="options-container">
+                            <!-- 初始默认显示4个单条输入框 -->
+                            <div class="option-item" style="margin-bottom: 10px;">
+                                <div class="layui-row">
+                                    <div class="layui-col-md1">
+                                        <div class="layui-form-mid layui-word-aux" style="font-weight: bold; font-size: 16px;">A</div>
+                                    </div>
+                                    <div class="layui-col-md10">
+                                        <input type="text" name="options[0][content]" placeholder="选项内容" class="layui-input" style="margin-bottom: 5px;" lay-verify="requiredOption">
+                                    </div>
+                                    <div class="layui-col-md1">
+                                        <input type="checkbox" name="options[0][is_correct]" lay-skin="primary" title="正确">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-item" style="margin-bottom: 10px;">
+                                <div class="layui-row">
+                                    <div class="layui-col-md1">
+                                        <div class="layui-form-mid layui-word-aux" style="font-weight: bold; font-size: 16px;">B</div>
+                                    </div>
+                                    <div class="layui-col-md10">
+                                        <input type="text" name="options[1][content]" placeholder="选项内容" class="layui-input" style="margin-bottom: 5px;" lay-verify="requiredOption">
+                                    </div>
+                                    <div class="layui-col-md1">
+                                        <input type="checkbox" name="options[1][is_correct]" lay-skin="primary" title="正确">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-item" style="margin-bottom: 10px;">
+                                <div class="layui-row">
+                                    <div class="layui-col-md1">
+                                        <div class="layui-form-mid layui-word-aux" style="font-weight: bold; font-size: 16px;">C</div>
+                                    </div>
+                                    <div class="layui-col-md10">
+                                        <input type="text" name="options[2][content]" placeholder="选项内容" class="layui-input" style="margin-bottom: 5px;" lay-verify="requiredOption">
+                                    </div>
+                                    <div class="layui-col-md1">
+                                        <input type="checkbox" name="options[2][is_correct]" lay-skin="primary" title="正确">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="option-item" style="margin-bottom: 10px;">
+                                <div class="layui-row">
+                                    <div class="layui-col-md1">
+                                        <div class="layui-form-mid layui-word-aux" style="font-weight: bold; font-size: 16px;">D</div>
+                                    </div>
+                                    <div class="layui-col-md10">
+                                        <input type="text" name="options[3][content]" placeholder="选项内容" class="layui-input" style="margin-bottom: 5px;" lay-verify="requiredOption">
+                                    </div>
+                                    <div class="layui-col-md1">
+                                        <input type="checkbox" name="options[3][is_correct]" lay-skin="primary" title="正确">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="layui-btn layui-btn-sm layui-btn-primary" id="add-option">
+                            <i class="layui-icon layui-icon-add-1"></i> 添加选项
+                        </button>
+                    </div>
+                    
+                    <!-- 批量输入区域 -->
+                    <div class="batch-input-section" style="margin-top: 20px;">
+                        <div class="layui-form-item">
+                            <label class="layui-form-label">批量输入</label>
+                            <div class="layui-input-block">
+                                <div style="display: flex; align-items: center;">
+                                    <input type="text" name="batch_options" placeholder="请输入选项，用竖线分隔（如：宣誓|训练|教育|劳动）" class="layui-input" style="margin-right: 10px;">
+                                    <input type="text" name="answer" placeholder="答案（如：A、AC）" class="layui-input" style="width: 150px;">
+                                </div>
+                                <div class="layui-form-mid layui-word-aux">格式说明：选项内容之间用竖线分隔，系统会自动分解内容并填充到上方单条输入框</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 填空题/简答题答案 -->
+        <div class="answer-section">
+            <div class="layui-form-item layui-form-text">
+                <label class="layui-form-label">答案</label>
+                <div class="layui-input-block">
+                    <textarea name="non_choice_answer" placeholder="请输入答案" class="layui-textarea" style="height: 80px;"></textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">解析</label>
+            <div class="layui-input-block">
+                <textarea name="analysis" placeholder="请输入解析" class="layui-textarea" style="height: 100px;"></textarea>
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button type="submit" class="layui-btn layui-btn-primary" lay-submit lay-filter="submit-question">保存</button>
+                <button type="reset" class="layui-btn layui-btn-primary layui-btn-danger">重置</button>
+            </div>
+        </div>
+    </form>
+</div>

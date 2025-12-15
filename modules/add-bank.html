@@ -1,0 +1,35 @@
+<!-- 添加题库 -->
+<div class="card" id="add-bank">
+    <div class="card-title">
+        <span>添加题库</span>
+        <button class="layui-btn layui-btn-sm layui-btn-primary" style="float: right;" id="back-to-banks">
+            <i class="layui-icon layui-icon-left"></i> 返回列表
+        </button>
+    </div>
+    
+    <!-- 添加题库表单 -->
+    <form class="layui-form layui-form-pane" id="bank-form" lay-filter="bank-form">
+        <input type="hidden" name="id">
+        
+        <div class="layui-form-item">
+            <label class="layui-form-label">题库名称</label>
+            <div class="layui-input-block">
+                <input type="text" name="name" placeholder="请输入题库名称" autocomplete="off" class="layui-input" lay-verify="required">
+            </div>
+        </div>
+        
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">题库描述</label>
+            <div class="layui-input-block">
+                <textarea name="description" placeholder="请输入题库描述" class="layui-textarea"></textarea>
+            </div>
+        </div>
+        
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button type="submit" class="layui-btn layui-btn-primary" lay-submit lay-filter="submit-bank">保存</button>
+                <button type="reset" class="layui-btn layui-btn-primary layui-btn-danger">重置</button>
+            </div>
+        </div>
+    </form>
+</div>

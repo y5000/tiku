@@ -1,0 +1,158 @@
+<!-- 顶部导航组件 -->
+<div class="header">
+    <div class="layui-row">
+        <!-- 左侧3份 -->
+        <div class="layui-col-xs3 layui-col-md3">
+            <div class="header-left">
+                <div class="site-name" id="siteName"></div>
+            </div>
+        </div>
+        <!-- 中间6份 -->
+        <div class="layui-col-xs6 layui-col-md6">
+            <div class="header-title" id="headerTitle">首页</div>
+        </div>
+        <!-- 右侧3份 -->
+        <div class="layui-col-xs3 layui-col-md3">
+            <div class="header-right" id="headerRight"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: #23915f;
+        color: #fff;
+        height: 60px;
+        line-height: 60px;
+        padding: 0;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+    }
+    .header .layui-row {
+        height: 100%;
+        margin: 0;
+    }
+    .header .layui-col-xs3,
+    .header .layui-col-xs6 {
+        height: 100%;
+        display: flex;
+        align-items: center;
+    }
+    .header-left {
+        padding-left: 20px;
+    }
+    .site-name {
+        font-size: 16px;
+        font-weight: bold;
+        color: #fff;
+    }
+    .header-title {
+        font-size: 16px;
+        font-weight: bold;
+        text-align: center;
+        width: 100%;
+    }
+    .header-right {
+        cursor: pointer;
+        padding-right: 20px;
+        text-align: right;
+        width: 100%;
+    }
+    .header-btn {
+        display: inline-block;
+        padding: 6px 12px;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        margin-left: 10px;
+        transition: all 0.3s ease;
+    }
+    .header-btn:hover {
+        background-color: rgba(255, 255, 255, 0.3);
+    }
+</style>
+
+<script>
+    // 顶部导航API
+    window.HeaderAPI = {
+        // 设置网站名称（左侧）
+        setSiteName: function(name) {
+            var siteNameElement = document.getElementById('siteName');
+            if (siteNameElement) {
+                siteNameElement.textContent = name;
+            }
+        },
+        
+        // 设置导航功能名称（中间）
+        setNavTitle: function(title) {
+            var headerTitleElement = document.getElementById('headerTitle');
+            if (headerTitleElement) {
+                headerTitleElement.textContent = title;
+            }
+        },
+        
+        // 添加右侧按钮
+        addButton: function(id, text, callback) {
+            var headerRight = document.getElementById('headerRight');
+            var btn = document.createElement('div');
+            btn.id = id;
+            btn.className = 'header-btn';
+            btn.textContent = text;
+            btn.onclick = callback;
+            headerRight.appendChild(btn);
+        },
+        
+        // 移除右侧按钮
+        removeButton: function(id) {
+            var btn = document.getElementById(id);
+            if (btn) {
+                btn.parentNode.removeChild(btn);
+            }
+        },
+        
+        // 清空右侧按钮
+        clearButtons: function() {
+            document.getElementById('headerRight').innerHTML = '';
+        },
+        
+        // 设置右侧HTML内容
+        setRightContent: function(html) {
+            document.getElementById('headerRight').innerHTML = html;
+        },
+        
+        // 获取并显示网站名称
+        loadSiteName: function() {
+            // 使用原生JavaScript AJAX调用API获取site_name
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', 'api/system-settings.php?key=site_name', true);
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    try {
+                        var res = JSON.parse(xhr.responseText);
+                        if (res.code === 0 && res.data && res.data.value) {
+                            // 设置网站名称到左侧区域
+                            HeaderAPI.setSiteName(res.data.value);
+                        }
+                    } catch (e) {
+                        console.error('解析网站名称失败:', e);
+                    }
+                }
+            };
+            
+            xhr.send();
+        }
+    };
+    
+    // 页面加载完成后自动获取网站名称
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            HeaderAPI.loadSiteName();
+        });
+    } else {
+        HeaderAPI.loadSiteName();
+    }
+</script>

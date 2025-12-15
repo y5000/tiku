@@ -1,0 +1,161 @@
+<!-- 首页内容 -->
+<div class="card">
+    <div class="card-title">
+        <i class="layui-icon layui-icon-home"></i>
+        学习中心
+    </div>
+    <div class="card-content">
+        <!-- 统计概览 -->
+        <div class="layui-row layui-col-space15" style="margin-bottom: 20px;">
+            <div class="layui-col-xs6">
+                <div class="grid-demo grid-demo-bg1" style="background-color: #5FB878; color: white; padding: 30px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s;">
+                    <div class="stat-number" id="totalBatches" style="font-size: 36px; font-weight: bold; margin-bottom: 10px;">0</div>
+                    <div class="stat-label" style="font-size: 16px;">练习次数</div>
+                </div>
+            </div>
+            <div class="layui-col-xs6">
+                <div class="grid-demo" style="background-color: #1E9FFF; color: white; padding: 30px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s;">
+                    <div class="stat-number" id="totalQuestions" style="font-size: 36px; font-weight: bold; margin-bottom: 10px;">0</div>
+                    <div class="stat-label" style="font-size: 16px;">总答题数</div>
+                </div>
+            </div>
+            <div class="layui-col-xs6">
+                <div class="grid-demo grid-demo-bg1" style="background-color: #FFB800; color: white; padding: 30px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s;">
+                    <div class="stat-number" id="averageScore" style="font-size: 36px; font-weight: bold; margin-bottom: 10px;">0</div>
+                    <div class="stat-label" style="font-size: 16px;">正确率</div>
+                </div>
+            </div>
+            <div class="layui-col-xs6">
+                <div class="grid-demo" style="background-color: #FF5722; color: white; padding: 30px; border-radius: 8px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s;">
+                    <div class="stat-number" id="todayBatches" style="font-size: 36px; font-weight: bold; margin-bottom: 10px;">0</div>
+                    <div class="stat-label" style="font-size: 16px;">今日练习</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 快速入口 -->
+        <div class="layui-card" style="margin-bottom: 20px;">
+            <div class="layui-card-header">
+                <i class="layui-icon layui-icon-rocket"></i>
+                快速开始
+            </div>
+            <div class="layui-card-body">
+                <div class="layui-row layui-col-space15">
+                    <div class="layui-col-xs6">
+                        <a data-href="modules/answer-content.html" class="quick-entry-btn" style="display: block; text-align: center; padding: 30px 0; background-color: #f5f7fa; border-radius: 8px; transition: all 0.3s; color: #333; cursor: pointer;">
+                            <i class="layui-icon layui-icon-read" style="font-size: 40px; color: #1E9FFF; margin-bottom: 10px;"></i>
+                            <h4>开始刷题</h4>
+                            <p style="color: #666; margin-top: 5px;">每天刷题太开心</p>
+                        </a>
+                    </div>
+                    <div class="layui-col-xs6">
+                        <a data-href="modules/competition-content.html" class="quick-entry-btn" style="display: block; text-align: center; padding: 30px 0; background-color: #f5f7fa; border-radius: 8px; transition: all 0.3s; color: #333; cursor: pointer;">
+                            <i class="layui-icon layui-icon-survey" style="font-size: 40px; color: #FFB800; margin-bottom: 10px;"></i>
+                            <h4>开始闯关</h4>
+                            <p style="color: #666; margin-top: 5px;">挑战更高难度题目</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 最近练习 -->
+        <div class="layui-card">
+            <div class="layui-card-header">
+                <i class="layui-icon layui-icon-time"></i>
+                最近练习
+            </div>
+            <div class="layui-card-body">
+                <div id="recentRecords" style="color: #666; text-align: center; padding: 20px 0;">暂无练习记录</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 设置导航标题为"首页"
+    if (window.HeaderAPI) {
+        HeaderAPI.setNavTitle('首页');
+    }
+
+    // 模块作用域变量，用于防止多次初始化
+    var isInitialized = false;
+    
+    // 初始化页面
+    function initHomePage() {
+        // 防止重复初始化
+        if (isInitialized) {
+            return;
+        }
+        
+        // 设置初始化标志
+        isInitialized = true;
+        
+        layui.use(['layer'], function() {
+            // 显示加载状态
+            var loading = layer.load(2, {
+                shade: [0.3, '#fff']
+            });
+            
+            // 获取统计数据
+            fetch('api/exam-batches.php?action=stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.code === 200) {
+                        // 更新统计数据
+                        document.getElementById('totalBatches').textContent = data.data.totalBatches || 0;
+                        document.getElementById('totalQuestions').textContent = data.data.totalQuestions || 0;
+                        document.getElementById('averageScore').textContent = (data.data.averageScore || 0) + '%';
+                        document.getElementById('todayBatches').textContent = data.data.todayBatches || 0;
+                    } else {
+                        layer.msg(data.msg || '获取统计数据失败', {icon: 5});
+                    }
+                    
+                    // 获取最近练习记录
+                    return fetch('api/exam-batches.php?limit=3');
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.code === 200 && data.data.length > 0) {
+                        let recordsHTML = '<table class="layui-table" style="margin: 0;">';
+                        recordsHTML += '<thead><tr><th>考试类型</th><th>总题数</th><th>正确率</th><th>时间</th></tr></thead>';
+                        recordsHTML += '<tbody>';
+                        
+                        // 只显示前3条记录
+                        const limitedRecords = data.data.slice(0, 3);
+                        limitedRecords.forEach(record => {
+                            // 计算正确率
+                            const score = record.total_questions > 0 ? Math.round((record.correct_questions / record.total_questions) * 100) : 0;
+                            
+                            recordsHTML += `<tr>`;
+                            recordsHTML += `<td>${record.exam_type}</td>`;
+                            recordsHTML += `<td>${record.total_questions}</td>`;
+                            recordsHTML += `<td>${score}%</td>`;
+                            recordsHTML += `<td>${record.start_time}</td>`;
+                            recordsHTML += `</tr>`;
+                        });
+                        
+                        recordsHTML += '</tbody></table>';
+                        document.getElementById('recentRecords').innerHTML = recordsHTML;
+                    } else {
+                        // 如果没有数据，显示暂无练习记录
+                        document.getElementById('recentRecords').innerHTML = '<div style="color: #666; text-align: center; padding: 20px 0;">暂无练习记录</div>';
+                    }
+                })
+                .catch(error => {
+                    layer.msg('网络错误，获取数据失败', {icon: 5});
+                })
+                .finally(() => {
+                    // 关闭加载动画
+                    layer.closeAll('loading');
+                });
+        });
+    }
+
+    // 只监听模块加载完成事件，确保数据只加载一次
+    document.addEventListener('moduleLoaded', function(event) {
+        if (event.detail.moduleUrl === 'modules/home-blank.html') {
+            initHomePage();
+        }
+    });
+</script>

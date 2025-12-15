@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>题库系统 - 管理中心</title>
+    <!-- 引入layui CSS -->
+    <link rel="stylesheet" href="https://lib.baomitu.com/layui/2.8.18/css/layui.css">
+    <!-- 引入公共CSS -->
+    <link rel="stylesheet" href="../css/common.css">
+    <!-- 模块私有CSS -->
+    <style>
+        /* 这里可以添加模块私有CSS */
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- 左侧导航 -->
+        <div class="admin-sidebar">
+            <div class="sidebar-header">题库管理中心</div>
+            <ul class="layui-nav layui-nav-tree" lay-filter="admin-nav">
+                <!-- 仪表盘 -->
+                <li class="layui-nav-item">
+                    <a href="#" lay-href="#dashboard">
+                        <i class="layui-icon layui-icon-home"></i>
+                        仪表盘
+                    </a>
+                </li>
+                
+                <!-- 题库管理 -->
+                <li class="layui-nav-item">
+                    <a href="javascript:;">
+                        <i class="layui-icon layui-icon-folder"></i>
+                        题库管理
+                    </a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="#" lay-href="#banks">题库列表</a></dd>
+                        <dd><a href="#" lay-href="#add-bank">添加题库</a></dd>
+                        <dd><a href="#" lay-href="#categories">分类管理</a></dd>
+                    </dl>
+                </li>
+                
+                <!-- 题目管理 -->
+                <li class="layui-nav-item">
+                    <a href="javascript:;">
+                        <i class="layui-icon layui-icon-read"></i>
+                        题目管理
+                    </a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="#" lay-href="#questions">题目列表</a></dd>
+                        <dd><a href="#" lay-href="#add-question">添加题目</a></dd>
+                    </dl>
+                </li>
+                
+                <!-- 用户管理 -->
+                <li class="layui-nav-item">
+                    <a href="javascript:;">
+                        <i class="layui-icon layui-icon-user"></i>
+                        用户管理
+                    </a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="#" lay-href="#users">用户列表</a></dd>
+                        <dd><a href="#" lay-href="#add-user">添加用户</a></dd>
+                    </dl>
+                </li>
+                
+                <!-- 错题管理 -->
+                <li class="layui-nav-item">
+                    <a href="javascript:;">
+                        <i class="layui-icon layui-icon-note"></i>
+                        错题管理
+                    </a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="#" lay-href="#wrong-questions">错题列表</a></dd>
+                        <dd><a href="#" lay-href="#wrong-stats">错题统计</a></dd>
+                    </dl>
+                </li>
+                
+                <!-- 系统设置 -->
+                <li class="layui-nav-item">
+                    <a href="javascript:;">
+                        <i class="layui-icon layui-icon-set"></i>
+                        系统设置
+                    </a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="#" lay-href="#system-config">系统配置</a></dd>
+                        <dd><a href="#" lay-href="#database-config">数据库配置</a></dd>
+                    </dl>
+                </li>
+                
+                <!-- 数据导入导出 -->
+                <li class="layui-nav-item">
+                    <a href="javascript:;">
+                        <i class="layui-icon layui-icon-upload"></i>
+                        数据导入导出
+                    </a>
+                    <dl class="layui-nav-child">
+                        <dd><a href="#" lay-href="#import-data">导入数据</a></dd>
+                        <dd><a href="#" lay-href="#export-data">导出数据</a></dd>
+                    </dl>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- 右侧内容区 -->
+        <div class="admin-content">
+            <!-- 顶部导航 -->
+            <div class="content-header">
+                <div class="header-title">管理中心</div>
+                <div class="header-user">
+                    <span>管理员</span>
+                    <a href="../index.html" class="layui-btn layui-btn-sm layui-btn-primary" style="margin-left: 20px;">
+                        返回首页
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 主内容区 -->
+            <div class="content-main">
+                <!-- 模块内容将通过AJAX加载到这里 -->
+                <div id="module-content"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 引入layui JS -->
+    <script src="https://lib.baomitu.com/layui/2.8.18/layui.js"></script>
+    <!-- 引入公共JS -->
+    <script src="../js/common.js"></script>
+    <!-- 模块私有JS -->
+    <script>
+        // 这里可以添加模块私有JS
+    </script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!-- 题目列表 -->
+<div class="card" id="questions">
+    <div class="card-title">
+        <span>题目列表</span>
+        <button class="layui-btn layui-btn-sm layui-btn-primary" style="float: right;" id="add-question-btn">
+            <i class="layui-icon layui-icon-add-1"></i> 添加题目
+        </button>
+    </div>
+    
+    <!-- 搜索栏 -->
+    <div class="layui-form layui-form-pane" style="margin-bottom: 20px;">
+        <div class="layui-form-item">
+            <div class="layui-inline">
+                <label class="layui-form-label">题库</label>
+                <div class="layui-input-inline" style="width: 150px;">
+                    <select id="search-bank" lay-filter="search-bank">
+                        <option value="0">全部题库</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label">类型</label>
+                <div class="layui-input-inline" style="width: 150px;">
+                    <select id="search-type" lay-filter="search-type">
+                        <option value="0">全部类型</option>
+                        <option value="1">单选</option>
+                        <option value="2">多选</option>
+                        <option value="3">判断</option>
+                        <option value="4">填空</option>
+                        <option value="5">简答</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-inline">
+                <button class="layui-btn layui-btn-primary" id="search-btn">
+                    <i class="layui-icon layui-icon-search"></i> 搜索
+                </button>
+                <button class="layui-btn layui-btn-primary" id="reset-btn">
+                    <i class="layui-icon layui-icon-refresh"></i> 重置
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 题目表格 -->
+    <table class="layui-table" id="questions-table" lay-filter="questions-filter"></table>
+</div>
+
+<!-- 题目表格操作列模板 -->
+<script type="text/html" id="questions-toolbar">
+    <a class="layui-btn layui-btn-xs layui-btn-primary" lay-event="edit">
+        <i class="layui-icon layui-icon-edit"></i> 编辑
+    </a>
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">
+        <i class="layui-icon layui-icon-delete"></i> 删除
+    </a>
+</script>

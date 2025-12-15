@@ -1,0 +1,326 @@
+<!-- 做题记录模块页面 -->
+<div class="card">
+    <div class="card-title">
+        <i class="layui-icon layui-icon-time"></i>
+        做题记录
+    </div>
+    <div class="card-content">
+        <!-- 筛选条件 -->
+        <div class="layui-form" lay-filter="examRecordsFilter" style="margin-top: 20px; margin-bottom: 20px;">
+            <div class="layui-row layui-col-space10">
+                <div class="layui-col-md3">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">考试类型</label>
+                        <div class="layui-input-block">
+                            <select name="exam_type" lay-filter="examType">
+                                <option value="">全部类型</option>
+                                <option value="随机答题">随机答题</option>
+                                <option value="专项练习">专项练习</option>
+                                <option value="模拟考试">模拟考试</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-col-md3">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">开始日期</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="start_date" id="startDate" placeholder="选择开始日期" class="layui-input" readonly>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-col-md3">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">结束日期</label>
+                        <div class="layui-input-block">
+                            <input type="text" name="end_date" id="endDate" placeholder="选择结束日期" class="layui-input" readonly>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-col-md3">
+                    <div class="layui-form-item layui-form-text">
+                        <div class="layui-input-block">
+                            <button class="layui-btn layui-btn-primary" lay-submit lay-filter="searchExamRecords">
+                                <i class="layui-icon layui-icon-search"></i> 搜索
+                            </button>
+                            <button type="reset" class="layui-btn layui-btn-primary">
+                                <i class="layui-icon layui-icon-refresh"></i> 重置
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 做题记录列表 -->
+        <div class="layui-card">
+            <div class="layui-card-body">
+                <table class="layui-table" lay-filter="examRecordsTable" id="examRecordsTable">
+                    <thead>
+                        <tr>
+                            <th lay-data="{field: 'id', width: 80}">ID</th>
+                            <th lay-data="{field: 'exam_type'}">考试类型</th>
+                            <th lay-data="{field: 'total_questions', width: 100}">总题数</th>
+                            <th lay-data="{field: 'correct_questions', width: 100, templet: '#correctQuestionsTpl'}">答对</th>
+                            <th lay-data="{field: 'wrong_questions', width: 100, templet: '#wrongQuestionsTpl'}">答错</th>
+                            <th lay-data="{field: 'empty_questions', width: 100, templet: '#emptyQuestionsTpl'}">未答</th>
+                            <th lay-data="{field: 'score', width: 100, templet: '#scoreTpl'}">正确率</th>
+                            <th lay-data="{field: 'start_time', width: 160}">开始时间</th>
+                            <th lay-data="{field: 'end_time', width: 160}">结束时间</th>
+                            <th lay-data="{fixed: 'right', width: 120, align: 'center', toolbar: '#examRecordsBar'}">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="examRecordsList">
+                        <!-- 记录将通过JavaScript动态加载 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- 分页 -->
+        <div id="examRecordsPage" style="text-align: center; margin-top: 20px;"></div>
+    </div>
+</div>
+
+<!-- 模板 -->
+<script type="text/html" id="correctQuestionsTpl">
+    <span style="color: #5FB878;">{{d.correct_questions}}</span>
+</script>
+<script type="text/html" id="wrongQuestionsTpl">
+    <span style="color: #FF5722;">{{d.wrong_questions}}</span>
+</script>
+<script type="text/html" id="emptyQuestionsTpl">
+    <span style="color: #999;">{{d.empty_questions}}</span>
+</script>
+<script type="text/html" id="scoreTpl">
+    <div class="layui-progress layui-progress-big" lay-showpercent="yes" lay-filter="scoreProgress">{{d.score}}%</div>
+</script>
+<script type="text/html" id="examRecordsBar">
+    <a class="layui-btn layui-btn-xs" lay-event="detail">查看详情</a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del">删除</a>
+</script>
+
+<script>
+    // 初始化页面
+    layui.use(['table', 'form', 'laydate', 'element'], function() {
+        var table = layui.table;
+        var form = layui.form;
+        var laydate = layui.laydate;
+        var element = layui.element;
+        
+        // 初始化日期选择器
+        laydate.render({
+            elem: '#startDate',
+            type: 'date',
+            range: false
+        });
+        
+        laydate.render({
+            elem: '#endDate',
+            type: 'date',
+            range: false
+        });
+        
+        // 初始化进度条
+        element.init();
+        
+        // 渲染表单，确保下拉框等元素正确显示
+        form.render();
+        
+        // 当前页码和每页条数
+        var currentPage = 1;
+        var pageSize = 10;
+        
+        // 渲染记录列表
+        function renderExamRecords(records) {
+            var tbody = document.getElementById('examRecordsList');
+            tbody.innerHTML = '';
+            
+            if (records && records.length > 0) {
+                records.forEach(function(record) {
+                    // 计算正确率
+                    var score = 0;
+                    if (record.total_questions > 0) {
+                        score = Math.round((record.correct_questions / record.total_questions) * 100);
+                    }
+                    record.score = score;
+                    
+                    var tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${record.id}</td>
+                        <td>${record.exam_type || '随机答题'}</td>
+                        <td>${record.total_questions}</td>
+                        <td><span style="color: #5FB878;">${record.correct_questions}</span></td>
+                        <td><span style="color: #FF5722;">${record.wrong_questions}</span></td>
+                        <td><span style="color: #999;">${record.empty_questions}</span></td>
+                        <td>
+                            <div class="layui-progress layui-progress-big" lay-showpercent="yes">
+                                <div class="layui-progress-bar" lay-percent="${score}%"></div>
+                            </div>
+                        </td>
+                        <td>${record.start_time || ''}</td>
+                        <td>${record.end_time || '进行中'}</td>
+                        <td>
+                            <a class="layui-btn layui-btn-xs" lay-event="detail" onclick="viewExamDetail(${record.id})">查看详情</a>
+                            <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del" onclick="deleteExamRecord(${record.id})">删除</a>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                
+                // 重新初始化进度条
+                setTimeout(function() {
+                    element.render('progress');
+                }, 100);
+            } else {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #999;">暂无做题记录</td></tr>';
+            }
+        }
+        
+        // 渲染分页
+        function renderPagination(total, page, limit) {
+            layui.laypage.render({
+                elem: 'examRecordsPage',
+                count: total,
+                curr: page,
+                limit: limit,
+                layout: ['count', 'prev', 'page', 'next', 'limit', 'refresh', 'skip'],
+                limits: [10, 20, 30, 50],
+                jump: function(obj, first) {
+                    if (!first) {
+                        loadExamRecords(obj.curr, obj.limit);
+                    }
+                }
+            });
+        }
+        
+        // 加载做题记录
+        function loadExamRecords(page, size) {
+            currentPage = page || currentPage;
+            pageSize = size || pageSize;
+            
+            // 显示加载状态
+            var loading = layer.load(2, {
+                shade: [0.3, '#fff']
+            });
+            
+            // 发送AJAX请求获取数据
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', 'api/exam-batches.php?page=' + currentPage + '&limit=' + pageSize, true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    layer.close(loading);
+                    
+                    if (xhr.status === 200) {
+                        var response = JSON.parse(xhr.responseText);
+                        if (response.code === 200) {
+                            var data = response.data;
+                            
+                            // 渲染记录列表
+                            renderExamRecords(data.items);
+                            
+                            // 渲染分页
+                            renderPagination(data.total, currentPage, pageSize);
+                        } else {
+                            layer.msg(response.msg || '获取记录失败', {icon: 5});
+                        }
+                    } else {
+                        layer.msg('网络错误，获取记录失败', {icon: 5});
+                    }
+                }
+            };
+            xhr.send();
+        }
+        
+        // 查看详情
+        window.viewExamDetail = function(batchId) {
+            layer.open({
+                type: 2,
+                title: '答题详情',
+                content: 'modules/exam-detail.html?batch_id=' + batchId,
+                area: ['90%', '80%'],
+                offset: 'auto'
+            });
+        }
+        
+        // 删除记录
+        window.deleteExamRecord = function(batchId) {
+            layer.confirm('确定要删除这条记录吗？', {
+                icon: 3,
+                title: '提示'
+            }, function(index) {
+                // 发送删除请求
+                var xhr = new XMLHttpRequest();
+                xhr.open('DELETE', 'api/exam-batches.php?batch_id=' + batchId, true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            var response = JSON.parse(xhr.responseText);
+                            if (response.code === 200) {
+                                layer.msg('删除成功', {icon: 1});
+                                // 重新加载数据
+                                loadExamRecords(currentPage, pageSize);
+                            } else {
+                                layer.msg(response.msg || '删除失败', {icon: 5});
+                            }
+                        } else {
+                            layer.msg('网络错误，删除失败', {icon: 5});
+                        }
+                    }
+                };
+                xhr.send();
+                
+                layer.close(index);
+            });
+        }
+        
+        // 搜索表单提交
+        form.on('submit(searchExamRecords)', function(data) {
+            // 这里可以添加搜索逻辑
+            layer.msg('搜索功能开发中...', {icon: 6});
+            return false;
+        });
+        
+        // 初始化加载数据
+        loadExamRecords(1, 10);
+    });
+    
+    // 监听模块加载完成事件，确保表单和日期选择框在模块完全加载后渲染
+    document.addEventListener('moduleLoaded', function(event) {
+        if (event.detail.moduleUrl === 'modules/exam-records.html') {
+            // 确保layui可用
+            if (typeof layui !== 'undefined') {
+                layui.use(['form', 'laydate'], function() {
+                    var form = layui.form;
+                    var laydate = layui.laydate;
+                    
+                    // 重新渲染表单，确保下拉框正确显示
+                    form.render();
+                    
+                    // 重新初始化日期选择器
+                    laydate.render({
+                        elem: '#startDate',
+                        type: 'date',
+                        range: false
+                    });
+                    
+                    laydate.render({
+                        elem: '#endDate',
+                        type: 'date',
+                        range: false
+                    });
+                });
+            }
+        }
+    });
+    
+    // 设置页面标题
+    if (window.HeaderAPI && HeaderAPI.setNavTitle) {
+        HeaderAPI.setNavTitle('做题记录');
+    }
+    
+    // 禁用下拉刷新
+    if (window.PullRefreshAPI) {
+        PullRefreshAPI.disable();
+    }
+</script>

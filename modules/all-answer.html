@@ -1,0 +1,29 @@
+<!-- 功能模块卡片 -->
+<div class="card">
+
+    <div class="function-grid">
+        <div class="function-item" data-href="modules/answer-content.html">
+            <i class="layui-icon layui-icon-read"></i>
+            <div class="title">刷 题</div>
+            <div class="desc">功在坚持，每天刷题</div>
+        </div>
+        <div class="function-item" data-href="modules/test-content.html">
+            <i class="layui-icon layui-icon-note"></i>
+            <div class="title">测 验</div>
+            <div class="desc">学后试金，考前练兵</div>
+        </div>
+        <div class="function-item" data-href="modules/competition-content.html">
+            <i class="layui-icon layui-icon-star"></i>
+            <div class="title">闯 关</div>
+            <div class="desc">征服挑战，解锁成就</div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // 设置导航标题为"每日刷题"
+    if (window.HeaderAPI) {
+        HeaderAPI.setNavTitle('每日刷题');
+    }
+</script>

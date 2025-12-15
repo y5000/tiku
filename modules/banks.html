@@ -1,0 +1,22 @@
+<!-- 题库列表 -->
+<div class="card" id="banks">
+    <div class="card-title">
+        <span>题库列表</span>
+        <button class="layui-btn layui-btn-sm layui-btn-primary" style="float: right;" id="add-bank-btn">
+            <i class="layui-icon layui-icon-add-1"></i> 添加题库
+        </button>
+    </div>
+    
+    <!-- 题库表格 -->
+    <table class="layui-table" id="banks-table" lay-filter="banks-filter"></table>
+</div>
+
+<!-- 题库表格操作列模板 -->
+<script type="text/html" id="banks-toolbar">
+    <a class="layui-btn layui-btn-xs layui-btn-primary" lay-event="edit">
+        <i class="layui-icon layui-icon-edit"></i> 编辑
+    </a>
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">
+        <i class="layui-icon layui-icon-delete"></i> 删除
+    </a>
+</script>
